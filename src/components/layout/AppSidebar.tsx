@@ -77,10 +77,12 @@ export function AppSidebar() {
   }, [location.pathname]);
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarContent>
+    <Sidebar collapsible="icon" className="border-r border-border/50">
+      <SidebarContent className="pt-4">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3">
+            Navigation
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -88,6 +90,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/"}
                   tooltip="Home"
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                 >
                   <NavLink to="/">
                     <Home className="h-4 w-4" />
@@ -99,8 +102,10 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Institutes</SidebarGroupLabel>
+        <SidebarGroup className="mt-4">
+          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3">
+            Institutes
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {institutes.map((institute) => (
@@ -114,6 +119,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActiveInstitute(institute.id) && !classId}
                       tooltip={institute.name}
+                      className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                     >
                       <NavLink to={`/institute/${institute.id}`}>
                         <Building2 className="h-4 w-4" />
@@ -124,13 +130,13 @@ export function AppSidebar() {
                       <CollapsibleTrigger asChild>
                         <button
                           className={cn(
-                            "absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-sidebar-accent",
+                            "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-accent transition-colors",
                             collapsed && "hidden"
                           )}
                         >
                           <ChevronRight
                             className={cn(
-                              "h-4 w-4 transition-transform",
+                              "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
                               openInstitutes.includes(institute.id) && "rotate-90"
                             )}
                           />
@@ -138,16 +144,17 @@ export function AppSidebar() {
                       </CollapsibleTrigger>
                     )}
                   </SidebarMenuItem>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
+                  <CollapsibleContent className="animate-accordion-down">
+                    <SidebarMenuSub className="ml-4 border-l-2 border-border/50 pl-2">
                       {classesMap[institute.id]?.map((cls) => (
                         <SidebarMenuSubItem key={cls.id}>
                           <SidebarMenuSubButton
                             asChild
                             isActive={isActiveClass(cls.id)}
+                            className="rounded-md transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
                           >
                             <NavLink to={`/institute/${institute.id}/class/${cls.id}`}>
-                              <BookOpen className="h-3 w-3" />
+                              <BookOpen className="h-3.5 w-3.5" />
                               <span className="truncate">{cls.name}</span>
                             </NavLink>
                           </SidebarMenuSubButton>
@@ -158,9 +165,11 @@ export function AppSidebar() {
                 </Collapsible>
               ))}
               {institutes.length === 0 && (
-                <p className="text-xs text-muted-foreground px-2 py-1">
-                  No institutes yet
-                </p>
+                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                  <Building2 className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                  <p className="text-sm text-muted-foreground">No institutes yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Add your first institute to get started</p>
+                </div>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
