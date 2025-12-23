@@ -1,14 +1,22 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, ClipboardList, Calendar, FolderOpen, LayoutDashboard, BookOpen } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, Calendar, FolderOpen, LayoutDashboard, BookOpen, BarChart3, UserCheck, Upload, Bell, Grid3X3, Database, Scale } from "lucide-react";
 import { Class, Institute } from "@/lib/db";
 import { ClassDashboard } from "./ClassDashboard";
 import { ClassStudents } from "./ClassStudents";
 import { ClassTasks } from "./ClassTasks";
 import { ClassAttendance } from "./ClassAttendance";
 import { TeacherFiles } from "./TeacherFiles";
+import { GradeReports } from "./GradeReports";
+import { StudentPerformance } from "./StudentPerformance";
+import { BulkImport } from "./BulkImport";
+import { AssignmentReminders } from "./AssignmentReminders";
+import { SeatingChart } from "./SeatingChart";
+import { BackupRestore } from "./BackupRestore";
+import { CustomGradingScales } from "./CustomGradingScales";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface ClassDetailProps {
   institute: Institute;
@@ -58,65 +66,74 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="bg-card rounded-xl p-1.5 shadow-sm border border-border/50">
-          <TabsList className="grid w-full grid-cols-5 gap-1 bg-transparent p-0">
-            <TabsTrigger 
-              value="dashboard" 
-              className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="students" 
-              className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Students</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="tasks" 
-              className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Tasks</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="attendance" 
-              className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Attendance</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="files" 
-              className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md transition-all duration-200"
-            >
-              <FolderOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">My Files</span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <ScrollArea className="w-full">
+          <div className="bg-card rounded-xl p-1.5 shadow-sm border border-border/50">
+            <TabsList className="flex w-max gap-1 bg-transparent p-0">
+              <TabsTrigger value="dashboard" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <LayoutDashboard className="h-4 w-4" />
+                <span className="hidden sm:inline">Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="students" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Users className="h-4 w-4" />
+                <span className="hidden sm:inline">Students</span>
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <ClipboardList className="h-4 w-4" />
+                <span className="hidden sm:inline">Tasks</span>
+              </TabsTrigger>
+              <TabsTrigger value="grades" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Reports</span>
+              </TabsTrigger>
+              <TabsTrigger value="performance" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <UserCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Performance</span>
+              </TabsTrigger>
+              <TabsTrigger value="reminders" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Bell className="h-4 w-4" />
+                <span className="hidden sm:inline">Reminders</span>
+              </TabsTrigger>
+              <TabsTrigger value="attendance" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">Attendance</span>
+              </TabsTrigger>
+              <TabsTrigger value="seating" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Grid3X3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Seating</span>
+              </TabsTrigger>
+              <TabsTrigger value="import" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Upload className="h-4 w-4" />
+                <span className="hidden sm:inline">Import</span>
+              </TabsTrigger>
+              <TabsTrigger value="files" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <FolderOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">Files</span>
+              </TabsTrigger>
+              <TabsTrigger value="scales" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Scale className="h-4 w-4" />
+                <span className="hidden sm:inline">Scales</span>
+              </TabsTrigger>
+              <TabsTrigger value="backup" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Database className="h-4 w-4" />
+                <span className="hidden sm:inline">Backup</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
-        <TabsContent value="dashboard" className="mt-6 animate-in fade-in-50 duration-300">
-          <ClassDashboard classId={classData.id} key={`dashboard-${refreshKey}`} />
-        </TabsContent>
-
-        <TabsContent value="students" className="mt-6 animate-in fade-in-50 duration-300">
-          <ClassStudents classId={classData.id} onDataChange={handleDataChange} />
-        </TabsContent>
-
-        <TabsContent value="tasks" className="mt-6 animate-in fade-in-50 duration-300">
-          <ClassTasks classId={classData.id} onDataChange={handleDataChange} />
-        </TabsContent>
-
-        <TabsContent value="attendance" className="mt-6 animate-in fade-in-50 duration-300">
-          <ClassAttendance classId={classData.id} />
-        </TabsContent>
-
-        <TabsContent value="files" className="mt-6 animate-in fade-in-50 duration-300">
-          <TeacherFiles classId={classData.id} />
-        </TabsContent>
+        <TabsContent value="dashboard" className="mt-6"><ClassDashboard classId={classData.id} key={`dashboard-${refreshKey}`} /></TabsContent>
+        <TabsContent value="students" className="mt-6"><ClassStudents classId={classData.id} onDataChange={handleDataChange} /></TabsContent>
+        <TabsContent value="tasks" className="mt-6"><ClassTasks classId={classData.id} onDataChange={handleDataChange} /></TabsContent>
+        <TabsContent value="grades" className="mt-6"><GradeReports classId={classData.id} /></TabsContent>
+        <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} /></TabsContent>
+        <TabsContent value="reminders" className="mt-6"><AssignmentReminders classId={classData.id} /></TabsContent>
+        <TabsContent value="attendance" className="mt-6"><ClassAttendance classId={classData.id} /></TabsContent>
+        <TabsContent value="seating" className="mt-6"><SeatingChart classId={classData.id} /></TabsContent>
+        <TabsContent value="import" className="mt-6"><BulkImport classId={classData.id} onImportComplete={handleDataChange} /></TabsContent>
+        <TabsContent value="files" className="mt-6"><TeacherFiles classId={classData.id} /></TabsContent>
+        <TabsContent value="scales" className="mt-6"><CustomGradingScales /></TabsContent>
+        <TabsContent value="backup" className="mt-6"><BackupRestore /></TabsContent>
       </Tabs>
     </div>
   );
