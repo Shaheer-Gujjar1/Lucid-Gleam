@@ -38,10 +38,13 @@ export interface Task {
 export interface TaskFile {
   id: string;
   taskId: string;
+  studentId?: string; // Optional: link file to a specific student
   name: string;
   type: string;
   size: number;
   data: Blob;
+  score?: number; // Optional: grade for this file
+  feedback?: string;
   createdAt: Date;
 }
 
@@ -104,7 +107,7 @@ interface TeacherDeskDB extends DBSchema {
   taskFiles: {
     key: string;
     value: TaskFile;
-    indexes: { 'by-task': string };
+    indexes: { 'by-task': string; 'by-student': string };
   };
   attendance: {
     key: string;
@@ -122,7 +125,7 @@ let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 4, {
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 5, {
       upgrade(db, oldVersion) {
         // Create institutes store
         if (!db.objectStoreNames.contains('institutes')) {
@@ -179,6 +182,16 @@ export function getDB() {
         if (!db.objectStoreNames.contains('taskFiles')) {
           const taskFilesStore = db.createObjectStore('taskFiles', { keyPath: 'id' });
           taskFilesStore.createIndex('by-task', 'taskId');
+          taskFilesStore.createIndex('by-student', 'studentId');
+        } else if (oldVersion < 5) {
+          // Add student index to existing taskFiles store
+          const tx = db.transaction as any;
+          if (tx && tx.objectStore) {
+            const taskFilesStore = tx.objectStore('taskFiles');
+            if (!taskFilesStore.indexNames.contains('by-student')) {
+              taskFilesStore.createIndex('by-student', 'studentId');
+            }
+          }
         }
 
         // Handle attendance store (new in version 4)
@@ -446,6 +459,12 @@ export async function addTaskFile(file: Omit<TaskFile, 'id' | 'createdAt'>): Pro
 export async function deleteTaskFile(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('taskFiles', id);
+}
+
+export async function updateTaskFile(file: TaskFile): Promise<TaskFile> {
+  const db = await getDB();
+  await db.put('taskFiles', file);
+  return file;
 }
 
 export async function getTaskFile(id: string): Promise<TaskFile | undefined> {
