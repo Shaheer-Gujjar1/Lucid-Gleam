@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -20,13 +21,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   ArrowLeft,
   Upload,
@@ -38,19 +38,18 @@ import {
   Eye,
   Save,
   Check,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Task,
   Student,
-  Grade,
   TaskFile,
   getFilesByTask,
   addTaskFile,
   deleteTaskFile,
+  updateTaskFile,
   getStudentsByClass,
-  getGradesByTask,
-  upsertGrade,
 } from "@/lib/db";
 
 interface TaskDetailProps {
@@ -91,12 +90,14 @@ function formatFileSize(bytes: number): string {
 export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailProps) {
   const [files, setFiles] = useState<TaskFile[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
-  const [grades, setGrades] = useState<Record<string, { score: string; saved: boolean }>>({});
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<TaskFile | null>(null);
+  const [editingFile, setEditingFile] = useState<TaskFile | null>(null);
+  const [editScore, setEditScore] = useState("");
+  const [editStudentId, setEditStudentId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -105,24 +106,13 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
 
   async function loadData() {
     setLoading(true);
-    const [taskFiles, classStudents, taskGrades] = await Promise.all([
+    const [taskFiles, classStudents] = await Promise.all([
       getFilesByTask(task.id),
       getStudentsByClass(classId),
-      getGradesByTask(task.id),
     ]);
     
     setFiles(taskFiles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     setStudents(classStudents.sort((a, b) => a.name.localeCompare(b.name)));
-    
-    const gradeMap: Record<string, { score: string; saved: boolean }> = {};
-    classStudents.forEach(student => {
-      const grade = taskGrades.find(g => g.studentId === student.id);
-      gradeMap[student.id] = {
-        score: grade ? grade.score.toString() : "",
-        saved: !!grade,
-      };
-    });
-    setGrades(gradeMap);
     setLoading(false);
   }
 
@@ -161,6 +151,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     if (successCount > 0) {
       toast.success(`${successCount} file(s) uploaded successfully`);
       loadData();
+      onDataChange?.();
     }
 
     setUploading(false);
@@ -175,6 +166,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
       toast.success("File deleted");
       setDeleteFileId(null);
       loadData();
+      onDataChange?.();
     }
   };
 
@@ -197,37 +189,44 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     }
   };
 
-  const handleScoreChange = (studentId: string, value: string) => {
-    setGrades(prev => ({
-      ...prev,
-      [studentId]: { score: value, saved: false },
-    }));
+  const handleEditFile = (file: TaskFile) => {
+    setEditingFile(file);
+    setEditScore(file.score?.toString() || "");
+    setEditStudentId(file.studentId || "");
   };
 
-  const handleSaveGrade = async (studentId: string) => {
-    const entry = grades[studentId];
-    const score = parseFloat(entry.score);
-    
-    if (entry.score === "" || isNaN(score) || score < 0 || score > task.maxScore) {
+  const handleSaveFileDetails = async () => {
+    if (!editingFile) return;
+
+    const score = editScore ? parseFloat(editScore) : undefined;
+    if (editScore && (isNaN(score!) || score! < 0 || score! > task.maxScore)) {
       toast.error(`Score must be between 0 and ${task.maxScore}`);
       return;
     }
 
-    setSaving(prev => ({ ...prev, [studentId]: true }));
+    setSaving(prev => ({ ...prev, [editingFile.id]: true }));
 
     try {
-      await upsertGrade(studentId, task.id, score);
-      setGrades(prev => ({
-        ...prev,
-        [studentId]: { ...prev[studentId], saved: true },
-      }));
-      toast.success("Grade saved");
+      await updateTaskFile({
+        ...editingFile,
+        studentId: editStudentId || undefined,
+        score,
+      });
+      toast.success("File details saved");
+      setEditingFile(null);
+      loadData();
       onDataChange?.();
     } catch (error) {
-      toast.error("Failed to save grade");
+      toast.error("Failed to save file details");
     } finally {
-      setSaving(prev => ({ ...prev, [studentId]: false }));
+      setSaving(prev => ({ ...prev, [editingFile.id]: false }));
     }
+  };
+
+  const getStudentName = (studentId?: string) => {
+    if (!studentId) return null;
+    const student = students.find(s => s.id === studentId);
+    return student?.name;
   };
 
   if (loading) {
@@ -261,51 +260,54 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Files Section */}
-        <Card className="border-none shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-card-foreground">Reference Files</CardTitle>
-            <div className="flex items-center gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept={ALLOWED_TYPES.join(",")}
-                onChange={handleFileSelect}
-                className="hidden"
-                id="task-file-upload"
-              />
-              <Button
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="gap-2"
-              >
-                <Upload className="h-4 w-4" />
-                {uploading ? "Uploading..." : "Upload"}
-              </Button>
+      {/* Files Section - Full Width */}
+      <Card className="border-none shadow-lg">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-card-foreground">
+            Student Submissions & Reference Files
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ALLOWED_TYPES.join(",")}
+              onChange={handleFileSelect}
+              className="hidden"
+              id="task-file-upload"
+            />
+            <Button
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              {uploading ? "Uploading..." : "Upload Files"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {files.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+              <p className="text-muted-foreground">No files uploaded yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upload student answer sheets, question papers, rubrics, etc.
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            {files.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <FileText className="h-10 w-10 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No files uploaded yet</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Upload question papers, rubrics, answer keys, etc.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {files.map((file) => {
-                  const FileIcon = getFileIcon(file.type);
-                  return (
-                    <div
-                      key={file.id}
-                      className="flex items-center gap-3 rounded-lg bg-background p-3"
-                    >
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {files.map((file) => {
+                const FileIcon = getFileIcon(file.type);
+                const studentName = getStudentName(file.studentId);
+                return (
+                  <div
+                    key={file.id}
+                    className="flex flex-col rounded-lg bg-background border border-border overflow-hidden"
+                  >
+                    <div className="flex items-center gap-3 p-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
                         <FileIcon className="h-5 w-5 text-muted-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -316,142 +318,150 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                           {formatFileSize(file.size)}
                         </p>
                       </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handlePreview(file)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleDownload(file)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteFileId(file.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    
+                    {/* Student & Grade Info */}
+                    <div className="px-3 pb-2 space-y-1">
+                      {studentName && (
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-foreground font-medium">{studentName}</span>
+                        </div>
+                      )}
+                      {file.score !== undefined && (
+                        <Badge variant="secondary" className="text-xs">
+                          Score: {file.score}/{task.maxScore}
+                        </Badge>
+                      )}
+                    </div>
 
-        {/* Grades Section */}
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Student Grades</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {students.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <p className="text-muted-foreground">No students in this class</p>
-              </div>
-            ) : (
-              <div className="max-h-[300px] overflow-y-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student</TableHead>
-                      <TableHead className="w-[120px] text-center">
-                        Score / {task.maxScore}
-                      </TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {students.map((student) => {
-                      const entry = grades[student.id] || { score: "", saved: false };
-                      const isSaving = saving[student.id];
-                      return (
-                        <TableRow key={student.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {student.photo ? (
-                                <img
-                                  src={student.photo}
-                                  alt={student.name}
-                                  className="h-8 w-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-                                  {student.name.charAt(0).toUpperCase()}
-                                </div>
-                              )}
-                              <span className="font-medium">{student.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="0"
-                              max={task.maxScore}
-                              value={entry.score}
-                              onChange={(e) => handleScoreChange(student.id, e.target.value)}
-                              className="w-20 text-center mx-auto"
-                              placeholder="-"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="icon"
-                              variant={entry.saved ? "ghost" : "default"}
-                              className="h-8 w-8"
-                              onClick={() => handleSaveGrade(student.id)}
-                              disabled={isSaving || !entry.score}
-                            >
-                              {entry.saved ? (
-                                <Check className="h-4 w-4 text-primary" />
-                              ) : (
-                                <Save className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                    {/* Actions */}
+                    <div className="flex gap-1 border-t border-border p-2 bg-muted/30">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => handlePreview(file)}
+                      >
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 h-8 text-xs"
+                        onClick={() => handleEditFile(file)}
+                      >
+                        <User className="h-3.5 w-3.5 mr-1" />
+                        Tag
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleDownload(file)}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteFileId(file.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* File Preview Dialog */}
+      {/* File Preview Dialog - Scrollable */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <DialogTitle className="truncate pr-4">{previewFile?.name}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
-            {previewFile?.type.startsWith("image/") && (
-              <img
-                src={URL.createObjectURL(previewFile.data)}
-                alt={previewFile.name}
-                className="max-w-full h-auto rounded-lg"
+          <ScrollArea className="flex-1 px-6 pb-6">
+            <div className="min-h-0">
+              {previewFile?.type.startsWith("image/") && (
+                <img
+                  src={URL.createObjectURL(previewFile.data)}
+                  alt={previewFile.name}
+                  className="max-w-full h-auto rounded-lg"
+                />
+              )}
+              {previewFile?.type === "application/pdf" && (
+                <iframe
+                  src={URL.createObjectURL(previewFile.data)}
+                  className="w-full h-[75vh] rounded-lg border-0"
+                  title={previewFile.name}
+                />
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit File Details Dialog */}
+      <Dialog open={!!editingFile} onOpenChange={() => setEditingFile(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tag Student & Grade</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Student</label>
+              <Select value={editStudentId} onValueChange={setEditStudentId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select student (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No student</SelectItem>
+                  {students.map((student) => (
+                    <SelectItem key={student.id} value={student.id}>
+                      {student.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Score (out of {task.maxScore})
+              </label>
+              <Input
+                type="number"
+                min="0"
+                max={task.maxScore}
+                value={editScore}
+                onChange={(e) => setEditScore(e.target.value)}
+                placeholder="Enter score (optional)"
               />
-            )}
-            {previewFile?.type === "application/pdf" && (
-              <iframe
-                src={URL.createObjectURL(previewFile.data)}
-                className="w-full h-[70vh] rounded-lg"
-                title={previewFile.name}
-              />
-            )}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditingFile(null)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveFileDetails}
+              disabled={saving[editingFile?.id || ""]}
+              className="gap-2"
+            >
+              {saving[editingFile?.id || ""] ? (
+                "Saving..."
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Save
+                </>
+              )}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -462,7 +472,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
           <AlertDialogHeader>
             <AlertDialogTitle>Delete File?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this file.
+              This will permanently delete this file and any associated grade.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
