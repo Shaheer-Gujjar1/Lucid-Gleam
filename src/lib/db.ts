@@ -35,6 +35,16 @@ export interface Task {
   createdAt: Date;
 }
 
+export interface TaskFile {
+  id: string;
+  taskId: string;
+  name: string;
+  type: string;
+  size: number;
+  data: Blob;
+  createdAt: Date;
+}
+
 export interface Grade {
   id: string;
   studentId: string;
@@ -70,13 +80,18 @@ interface TeacherDeskDB extends DBSchema {
     value: Grade;
     indexes: { 'by-student': string; 'by-task': string };
   };
+  taskFiles: {
+    key: string;
+    value: TaskFile;
+    indexes: { 'by-task': string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 2, {
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 3, {
       upgrade(db, oldVersion) {
         // Create institutes store
         if (!db.objectStoreNames.contains('institutes')) {
@@ -128,6 +143,12 @@ export function getDB() {
           const gradeStore = db.createObjectStore('grades', { keyPath: 'id' });
           gradeStore.createIndex('by-student', 'studentId');
           gradeStore.createIndex('by-task', 'taskId');
+        }
+
+        // Handle taskFiles store (new in version 3)
+        if (!db.objectStoreNames.contains('taskFiles')) {
+          const taskFilesStore = db.createObjectStore('taskFiles', { keyPath: 'id' });
+          taskFilesStore.createIndex('by-task', 'taskId');
         }
       },
     });
@@ -302,6 +323,11 @@ export async function deleteTask(id: string): Promise<void> {
   for (const grade of grades) {
     await db.delete('grades', grade.id);
   }
+  // Also delete associated files
+  const files = await db.getAllFromIndex('taskFiles', 'by-task', id);
+  for (const file of files) {
+    await db.delete('taskFiles', file.id);
+  }
 }
 
 // Grade operations
@@ -354,4 +380,31 @@ export async function upsertGrade(studentId: string, taskId: string, score: numb
     return updateGrade({ ...existing, score, feedback, gradedAt: new Date() });
   }
   return addGrade({ studentId, taskId, score, feedback });
+}
+
+// TaskFile operations
+export async function getFilesByTask(taskId: string): Promise<TaskFile[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('taskFiles', 'by-task', taskId);
+}
+
+export async function addTaskFile(file: Omit<TaskFile, 'id' | 'createdAt'>): Promise<TaskFile> {
+  const db = await getDB();
+  const newFile: TaskFile = {
+    ...file,
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+  };
+  await db.add('taskFiles', newFile);
+  return newFile;
+}
+
+export async function deleteTaskFile(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('taskFiles', id);
+}
+
+export async function getTaskFile(id: string): Promise<TaskFile | undefined> {
+  const db = await getDB();
+  return db.get('taskFiles', id);
 }
