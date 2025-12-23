@@ -30,7 +30,7 @@ const Index = () => {
                 <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-foreground">Mentorly</h1>
+            <h1 className="text-xl font-bold text-foreground">Lucid Gleam</h1>
           </div>
           <p className="text-sm text-muted-foreground hidden sm:block">
             Manage your classes and students
