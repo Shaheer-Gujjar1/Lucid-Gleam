@@ -28,9 +28,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal, Paperclip } from "lucide-react";
 import { toast } from "sonner";
-import { getTasksByClass, addTask, updateTask, deleteTask, Task } from "@/lib/db";
+import { getTasksByClass, addTask, updateTask, deleteTask, getFilesByTask, Task } from "@/lib/db";
+import { TaskFiles } from "./TaskFiles";
 
 const taskTypes = [
   { value: "assignment", label: "Assignment", icon: FileText },
@@ -55,11 +56,14 @@ interface ClassTasksProps {
 
 export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [fileCounts, setFileCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
+  const [filesTaskId, setFilesTaskId] = useState<string | null>(null);
+  const [filesTaskTitle, setFilesTaskTitle] = useState<string>("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -76,6 +80,14 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
   async function loadTasks() {
     const data = await getTasksByClass(classId);
     setTasks(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    
+    // Load file counts for each task
+    const counts: Record<string, number> = {};
+    for (const task of data) {
+      const files = await getFilesByTask(task.id);
+      counts[task.id] = files.length;
+    }
+    setFileCounts(counts);
     setLoading(false);
   }
 
@@ -368,6 +380,20 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => {
+                        setFilesTaskId(task.id);
+                        setFilesTaskTitle(task.title);
+                      }}
+                      className="gap-1"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      {fileCounts[task.id] > 0 && (
+                        <span className="text-xs">{fileCounts[task.id]}</span>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handleEdit(task)}
                     >
                       <Pencil className="h-4 w-4" />
@@ -392,7 +418,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this task and all associated grades.
+              This will permanently delete this task and all associated grades and files.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -402,6 +428,18 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <TaskFiles
+        taskId={filesTaskId || ""}
+        taskTitle={filesTaskTitle}
+        open={!!filesTaskId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFilesTaskId(null);
+            loadTasks(); // Refresh file counts
+          }
+        }}
+      />
     </div>
   );
 }
