@@ -81,7 +81,7 @@ const colorOptions = [
 ];
 
 export function CustomGradingScales() {
-  const [scales, setScales] = useState<GradingScale[]>([]);
+  const [scales, setScales] = useState<GradingScale[]>(defaultScales);
   const [activeScale, setActiveScale] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newScale, setNewScale] = useState<GradingScale>({
