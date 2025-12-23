@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,105 +20,105 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Upload, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getAllStudents,
-  addStudent,
-  updateStudent,
-  deleteStudent,
-  Student,
+  getAllInstitutes,
+  addInstitute,
+  updateInstitute,
+  deleteInstitute,
+  getClassesByInstitute,
+  Institute,
 } from "@/lib/db";
 
-export function StudentList() {
-  const [students, setStudents] = useState<Student[]>([]);
+interface InstituteListProps {
+  onSelectInstitute: (institute: Institute) => void;
+}
+
+export function InstituteList({ onSelectInstitute }: InstituteListProps) {
+  const [institutes, setInstitutes] = useState<Institute[]>([]);
+  const [classCounts, setClassCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [editingInstitute, setEditingInstitute] = useState<Institute | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
-    photo: "",
+    address: "",
   });
 
   useEffect(() => {
-    loadStudents();
+    loadInstitutes();
   }, []);
 
-  async function loadStudents() {
-    const data = await getAllStudents();
-    setStudents(data);
+  async function loadInstitutes() {
+    const data = await getAllInstitutes();
+    setInstitutes(data);
+    
+    // Load class counts for each institute
+    const counts: Record<string, number> = {};
+    for (const inst of data) {
+      const classes = await getClassesByInstitute(inst.id);
+      counts[inst.id] = classes.length;
+    }
+    setClassCounts(counts);
     setLoading(false);
   }
-
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({ ...prev, photo: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      toast.error("Please enter a student name");
+      toast.error("Please enter an institute name");
       return;
     }
 
     try {
-      if (editingStudent) {
-        await updateStudent({
-          ...editingStudent,
+      if (editingInstitute) {
+        await updateInstitute({
+          ...editingInstitute,
           name: formData.name,
-          email: formData.email,
-          photo: formData.photo,
+          address: formData.address,
         });
-        toast.success("Student updated successfully");
+        toast.success("Institute updated successfully");
       } else {
-        await addStudent({
+        await addInstitute({
           name: formData.name,
-          email: formData.email,
-          photo: formData.photo,
+          address: formData.address,
         });
-        toast.success("Student added successfully");
+        toast.success("Institute added successfully");
       }
       setIsDialogOpen(false);
-      setEditingStudent(null);
-      setFormData({ name: "", email: "", photo: "" });
-      loadStudents();
+      setEditingInstitute(null);
+      setFormData({ name: "", address: "" });
+      loadInstitutes();
     } catch (error) {
       toast.error("An error occurred");
     }
   };
 
-  const handleEdit = (student: Student) => {
-    setEditingStudent(student);
+  const handleEdit = (e: React.MouseEvent, institute: Institute) => {
+    e.stopPropagation();
+    setEditingInstitute(institute);
     setFormData({
-      name: student.name,
-      email: student.email || "",
-      photo: student.photo || "",
+      name: institute.name,
+      address: institute.address || "",
     });
     setIsDialogOpen(true);
   };
 
   const handleDelete = async () => {
     if (deleteId) {
-      await deleteStudent(deleteId);
-      toast.success("Student deleted");
+      await deleteInstitute(deleteId);
+      toast.success("Institute deleted");
       setDeleteId(null);
-      loadStudents();
+      loadInstitutes();
     }
   };
 
-  const filteredStudents = students.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredInstitutes = institutes.filter((i) =>
+    i.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -133,9 +133,9 @@ export function StudentList() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Students</h1>
+          <h1 className="text-3xl font-bold text-foreground">Institutes</h1>
           <p className="text-muted-foreground">
-            Manage your class roster and student information.
+            Manage your schools and organizations.
           </p>
         </div>
         <Dialog
@@ -143,53 +143,24 @@ export function StudentList() {
           onOpenChange={(open) => {
             setIsDialogOpen(open);
             if (!open) {
-              setEditingStudent(null);
-              setFormData({ name: "", email: "", photo: "" });
+              setEditingInstitute(null);
+              setFormData({ name: "", address: "" });
             }
           }}
         >
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
-              Add Student
+              Add Institute
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingStudent ? "Edit Student" : "Add New Student"}
+                {editingInstitute ? "Edit Institute" : "Add New Institute"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  {formData.photo ? (
-                    <img
-                      src={formData.photo}
-                      alt="Preview"
-                      className="h-24 w-24 rounded-full object-cover ring-4 ring-primary/20"
-                    />
-                  ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
-                      <Upload className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  )}
-                  <label
-                    htmlFor="photo-upload"
-                    className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-110"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </label>
-                  <input
-                    id="photo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="name">Name *</Label>
                 <Input
@@ -198,20 +169,19 @@ export function StudentList() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  placeholder="Enter student name"
+                  placeholder="Enter institute name"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email (optional)</Label>
+                <Label htmlFor="address">Address (optional)</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
+                  id="address"
+                  value={formData.address}
                   onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, email: e.target.value }))
+                    setFormData((prev) => ({ ...prev, address: e.target.value }))
                   }
-                  placeholder="student@example.com"
+                  placeholder="Enter address"
                 />
               </div>
 
@@ -224,7 +194,7 @@ export function StudentList() {
                   Cancel
                 </Button>
                 <Button type="submit">
-                  {editingStudent ? "Update" : "Add"} Student
+                  {editingInstitute ? "Update" : "Add"} Institute
                 </Button>
               </div>
             </form>
@@ -235,52 +205,48 @@ export function StudentList() {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search students..."
+          placeholder="Search institutes..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
         />
       </div>
 
-      {filteredStudents.length === 0 ? (
+      {filteredInstitutes.length === 0 ? (
         <Card className="border-dashed border-2">
           <CardContent className="flex flex-col items-center justify-center py-12">
+            <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg text-muted-foreground">
-              {students.length === 0
-                ? "No students yet. Add your first student!"
-                : "No students match your search."}
+              {institutes.length === 0
+                ? "No institutes yet. Add your first institute!"
+                : "No institutes match your search."}
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredStudents.map((student) => (
-            <Card key={student.id} className="group border-none shadow-lg transition-all hover:shadow-xl">
+          {filteredInstitutes.map((institute) => (
+            <Card
+              key={institute.id}
+              className="group cursor-pointer border-none shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
+              onClick={() => onSelectInstitute(institute)}
+            >
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  {student.photo ? (
-                    <img
-                      src={student.photo}
-                      alt={student.name}
-                      className="h-16 w-16 rounded-full object-cover ring-2 ring-primary/20"
-                    />
-                  ) : (
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-                      {student.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Building2 className="h-6 w-6" />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-card-foreground truncate">
-                      {student.name}
+                      {institute.name}
                     </h3>
-                    {student.email && (
+                    {institute.address && (
                       <p className="text-sm text-muted-foreground truncate">
-                        {student.email}
+                        {institute.address}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Added{" "}
-                      {new Date(student.createdAt).toLocaleDateString()}
+                    <p className="text-sm text-primary mt-1">
+                      {classCounts[institute.id] || 0} classes
                     </p>
                   </div>
                 </div>
@@ -288,14 +254,17 @@ export function StudentList() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleEdit(student)}
+                    onClick={(e) => handleEdit(e, institute)}
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => setDeleteId(student.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteId(institute.id);
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -309,9 +278,9 @@ export function StudentList() {
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Student?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Institute?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this student and all their grades.
+              This will permanently delete this institute and all its classes, students, tasks, and grades.
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

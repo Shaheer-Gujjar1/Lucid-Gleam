@@ -1,9 +1,20 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ClipboardList, GraduationCap, TrendingUp } from "lucide-react";
-import { getAllStudents, getAllTasks, getAllGrades, Student, Task, Grade } from "@/lib/db";
+import {
+  getStudentsByClass,
+  getTasksByClass,
+  getAllGrades,
+  Student,
+  Task,
+  Grade,
+} from "@/lib/db";
 
-export function Dashboard() {
+interface ClassDashboardProps {
+  classId: string;
+}
+
+export function ClassDashboard({ classId }: ClassDashboardProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -11,18 +22,25 @@ export function Dashboard() {
 
   useEffect(() => {
     async function loadData() {
-      const [s, t, g] = await Promise.all([
-        getAllStudents(),
-        getAllTasks(),
+      const [s, t, allGrades] = await Promise.all([
+        getStudentsByClass(classId),
+        getTasksByClass(classId),
         getAllGrades(),
       ]);
       setStudents(s);
       setTasks(t);
-      setGrades(g);
+      
+      // Filter grades for this class's students and tasks
+      const studentIds = new Set(s.map((st) => st.id));
+      const taskIds = new Set(t.map((tk) => tk.id));
+      const classGrades = allGrades.filter(
+        (g) => studentIds.has(g.studentId) && taskIds.has(g.taskId)
+      );
+      setGrades(classGrades);
       setLoading(false);
     }
     loadData();
-  }, []);
+  }, [classId]);
 
   const calculateAverageScore = () => {
     if (grades.length === 0 || tasks.length === 0) return 0;
@@ -48,24 +66,19 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back! Here's an overview of your class.</p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="border-none shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Students
+              Students
             </CardTitle>
             <Users className="h-5 w-5 text-primary" />
           </CardHeader>
@@ -77,7 +90,7 @@ export function Dashboard() {
         <Card className="border-none shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Tasks
+              Tasks
             </CardTitle>
             <ClipboardList className="h-5 w-5 text-primary" />
           </CardHeader>
@@ -152,7 +165,7 @@ export function Dashboard() {
 
         <Card className="border-none shadow-lg">
           <CardHeader>
-            <CardTitle className="text-card-foreground">Recent Students</CardTitle>
+            <CardTitle className="text-card-foreground">Students</CardTitle>
           </CardHeader>
           <CardContent>
             {students.length === 0 ? (
@@ -185,6 +198,11 @@ export function Dashboard() {
                     </div>
                   </div>
                 ))}
+                {students.length > 5 && (
+                  <p className="text-center text-sm text-muted-foreground">
+                    +{students.length - 5} more students
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

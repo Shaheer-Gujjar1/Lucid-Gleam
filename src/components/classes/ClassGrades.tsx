@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,8 +20,8 @@ import {
 import { Save, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
-  getAllStudents,
-  getAllTasks,
+  getStudentsByClass,
+  getTasksByClass,
   getAllGrades,
   upsertGrade,
   Student,
@@ -36,7 +36,11 @@ interface GradeEntry {
   saved: boolean;
 }
 
-export function GradeBook() {
+interface ClassGradesProps {
+  classId: string;
+}
+
+export function ClassGrades({ classId }: ClassGradesProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -47,24 +51,31 @@ export function GradeBook() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [classId]);
 
   async function loadData() {
-    const [s, t, g] = await Promise.all([
-      getAllStudents(),
-      getAllTasks(),
+    const [s, t, allGrades] = await Promise.all([
+      getStudentsByClass(classId),
+      getTasksByClass(classId),
       getAllGrades(),
     ]);
     setStudents(s);
     setTasks(t);
-    setGrades(g);
+    
+    // Filter grades for this class
+    const studentIds = new Set(s.map((st) => st.id));
+    const taskIds = new Set(t.map((tk) => tk.id));
+    const classGrades = allGrades.filter(
+      (g) => studentIds.has(g.studentId) && taskIds.has(g.taskId)
+    );
+    setGrades(classGrades);
 
     // Initialize grade entries
     const entries: Record<string, GradeEntry> = {};
     s.forEach((student) => {
       t.forEach((task) => {
         const key = `${student.id}-${task.id}`;
-        const existingGrade = g.find(
+        const existingGrade = classGrades.find(
           (grade) => grade.studentId === student.id && grade.taskId === task.id
         );
         entries[key] = {
@@ -138,7 +149,7 @@ export function GradeBook() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -146,49 +157,31 @@ export function GradeBook() {
 
   if (students.length === 0) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gradebook</h1>
-          <p className="text-muted-foreground">Record and track student grades.</p>
-        </div>
-        <Card className="border-dashed border-2">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-lg text-muted-foreground">
-              Add students first to start grading.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-lg text-muted-foreground">
+            Add students first to start grading.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   if (tasks.length === 0) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gradebook</h1>
-          <p className="text-muted-foreground">Record and track student grades.</p>
-        </div>
-        <Card className="border-dashed border-2">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-lg text-muted-foreground">
-              Create tasks first to start grading.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <p className="text-lg text-muted-foreground">
+            Create tasks first to start grading.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Gradebook</h1>
-          <p className="text-muted-foreground">
-            Record and track student grades for all tasks.
-          </p>
-        </div>
+      <div className="flex justify-end">
         <Select value={selectedTask} onValueChange={setSelectedTask}>
           <SelectTrigger className="w-64">
             <SelectValue placeholder="Filter by task" />
