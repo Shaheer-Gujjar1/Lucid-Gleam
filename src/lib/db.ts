@@ -107,7 +107,7 @@ interface TeacherDeskDB extends DBSchema {
   taskFiles: {
     key: string;
     value: TaskFile;
-    indexes: { 'by-task': string; 'by-student': string };
+    indexes: { 'by-task': string };
   };
   attendance: {
     key: string;
@@ -125,7 +125,7 @@ let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 5, {
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 4, {
       upgrade(db, oldVersion) {
         // Create institutes store
         if (!db.objectStoreNames.contains('institutes')) {
@@ -182,16 +182,6 @@ export function getDB() {
         if (!db.objectStoreNames.contains('taskFiles')) {
           const taskFilesStore = db.createObjectStore('taskFiles', { keyPath: 'id' });
           taskFilesStore.createIndex('by-task', 'taskId');
-          taskFilesStore.createIndex('by-student', 'studentId');
-        } else if (oldVersion < 5) {
-          // Add student index to existing taskFiles store
-          const tx = db.transaction as any;
-          if (tx && tx.objectStore) {
-            const taskFilesStore = tx.objectStore('taskFiles');
-            if (!taskFilesStore.indexNames.contains('by-student')) {
-              taskFilesStore.createIndex('by-student', 'studentId');
-            }
-          }
         }
 
         // Handle attendance store (new in version 4)
