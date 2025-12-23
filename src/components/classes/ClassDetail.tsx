@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, ClipboardList, GraduationCap, LayoutDashboard } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, Calendar, FolderOpen, LayoutDashboard } from "lucide-react";
 import { Class, Institute } from "@/lib/db";
 import { ClassDashboard } from "./ClassDashboard";
 import { ClassStudents } from "./ClassStudents";
 import { ClassTasks } from "./ClassTasks";
-import { ClassGrades } from "./ClassGrades";
+import { ClassAttendance } from "./ClassAttendance";
+import { TeacherFiles } from "./TeacherFiles";
 
 interface ClassDetailProps {
   institute: Institute;
@@ -38,7 +39,7 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
           <TabsTrigger value="dashboard" className="gap-2">
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Overview</span>
@@ -51,9 +52,13 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
             <ClipboardList className="h-4 w-4" />
             <span className="hidden sm:inline">Tasks</span>
           </TabsTrigger>
-          <TabsTrigger value="grades" className="gap-2">
-            <GraduationCap className="h-4 w-4" />
-            <span className="hidden sm:inline">Grades</span>
+          <TabsTrigger value="attendance" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Attendance</span>
+          </TabsTrigger>
+          <TabsTrigger value="files" className="gap-2">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">My Files</span>
           </TabsTrigger>
         </TabsList>
 
@@ -69,8 +74,12 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
           <ClassTasks classId={classData.id} onDataChange={handleDataChange} />
         </TabsContent>
 
-        <TabsContent value="grades" className="mt-6">
-          <ClassGrades classId={classData.id} key={`grades-${refreshKey}`} />
+        <TabsContent value="attendance" className="mt-6">
+          <ClassAttendance classId={classData.id} />
+        </TabsContent>
+
+        <TabsContent value="files" className="mt-6">
+          <TeacherFiles classId={classData.id} />
         </TabsContent>
       </Tabs>
     </div>

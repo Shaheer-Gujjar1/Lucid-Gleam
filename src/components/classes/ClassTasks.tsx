@@ -28,10 +28,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal, Paperclip } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal, Paperclip, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { getTasksByClass, addTask, updateTask, deleteTask, getFilesByTask, Task } from "@/lib/db";
-import { TaskFiles } from "./TaskFiles";
+import { TaskDetail } from "./TaskDetail";
 
 const taskTypes = [
   { value: "assignment", label: "Assignment", icon: FileText },
@@ -62,8 +62,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>("all");
-  const [filesTaskId, setFilesTaskId] = useState<string | null>(null);
-  const [filesTaskTitle, setFilesTaskTitle] = useState<string>("");
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -81,7 +80,6 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
     const data = await getTasksByClass(classId);
     setTasks(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     
-    // Load file counts for each task
     const counts: Record<string, number> = {};
     for (const task of data) {
       const files = await getFilesByTask(task.id);
@@ -149,9 +147,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
       type: task.type,
       description: task.description || "",
       maxScore: task.maxScore.toString(),
-      dueDate: task.dueDate
-        ? new Date(task.dueDate).toISOString().split("T")[0]
-        : "",
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
     });
     setIsDialogOpen(true);
   };
@@ -166,10 +162,21 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
     }
   };
 
-  const filteredTasks =
-    filterType === "all"
-      ? tasks
-      : tasks.filter((t) => t.type === filterType);
+  if (selectedTask) {
+    return (
+      <TaskDetail
+        task={selectedTask}
+        classId={classId}
+        onBack={() => {
+          setSelectedTask(null);
+          loadTasks();
+        }}
+        onDataChange={onDataChange}
+      />
+    );
+  }
+
+  const filteredTasks = filterType === "all" ? tasks : tasks.filter((t) => t.type === filterType);
 
   if (loading) {
     return (
@@ -183,11 +190,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={filterType === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterType("all")}
-          >
+          <Button variant={filterType === "all" ? "default" : "outline"} size="sm" onClick={() => setFilterType("all")}>
             All
           </Button>
           {taskTypes.map((type) => (
@@ -203,22 +206,13 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
             </Button>
           ))}
         </div>
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) {
-              setEditingTask(null);
-              setFormData({
-                title: "",
-                type: "assignment",
-                description: "",
-                maxScore: "100",
-                dueDate: "",
-              });
-            }
-          }}
-        >
+        <Dialog open={isDialogOpen} onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) {
+            setEditingTask(null);
+            setFormData({ title: "", type: "assignment", description: "", maxScore: "100", dueDate: "" });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="gap-2">
               <Plus className="h-4 w-4" />
@@ -227,99 +221,41 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                {editingTask ? "Edit Task" : "Add New Task"}
-              </DialogTitle>
+              <DialogTitle>{editingTask ? "Edit Task" : "Add New Task"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, title: e.target.value }))
-                  }
-                  placeholder="Enter task title"
-                />
+                <Input id="title" value={formData.title} onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))} placeholder="Enter task title" />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="type">Type</Label>
-                <Select
-                  value={formData.type}
-                  onValueChange={(value: Task["type"]) =>
-                    setFormData((prev) => ({ ...prev, type: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={formData.type} onValueChange={(value: Task["type"]) => setFormData((prev) => ({ ...prev, type: value }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {taskTypes.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
-                        <div className="flex items-center gap-2">
-                          <type.icon className="h-4 w-4" />
-                          {type.label}
-                        </div>
+                        <div className="flex items-center gap-2"><type.icon className="h-4 w-4" />{type.label}</div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="maxScore">Max Score *</Label>
-                <Input
-                  id="maxScore"
-                  type="number"
-                  min="1"
-                  value={formData.maxScore}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, maxScore: e.target.value }))
-                  }
-                />
+                <Input id="maxScore" type="number" min="1" value={formData.maxScore} onChange={(e) => setFormData((prev) => ({ ...prev, maxScore: e.target.value }))} />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date (optional)</Label>
-                <Input
-                  id="dueDate"
-                  type="date"
-                  value={formData.dueDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, dueDate: e.target.value }))
-                  }
-                />
+                <Input id="dueDate" type="date" value={formData.dueDate} onChange={(e) => setFormData((prev) => ({ ...prev, dueDate: e.target.value }))} />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="description">Description (optional)</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      description: e.target.value,
-                    }))
-                  }
-                  placeholder="Enter task description"
-                  rows={3}
-                />
+                <Textarea id="description" value={formData.description} onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))} placeholder="Enter task description" rows={3} />
               </div>
-
               <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingTask ? "Update" : "Add"} Task
-                </Button>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="submit">{editingTask ? "Update" : "Add"} Task</Button>
               </div>
             </form>
           </DialogContent>
@@ -329,82 +265,40 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
       {filteredTasks.length === 0 ? (
         <Card className="border-dashed border-2">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-lg text-muted-foreground">
-              {tasks.length === 0
-                ? "No tasks yet. Create your first task!"
-                : "No tasks match this filter."}
-            </p>
+            <p className="text-lg text-muted-foreground">{tasks.length === 0 ? "No tasks yet. Create your first task!" : "No tasks match this filter."}</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredTasks.map((task) => {
-            const TypeIcon =
-              taskTypes.find((t) => t.value === task.type)?.icon || FileText;
+            const TypeIcon = taskTypes.find((t) => t.value === task.type)?.icon || FileText;
             return (
-              <Card
-                key={task.id}
-                className={`group border-2 shadow-lg transition-all hover:shadow-xl ${taskTypeColors[task.type]}`}
-              >
+              <Card key={task.id} className={`group border-2 shadow-lg transition-all hover:shadow-xl cursor-pointer ${taskTypeColors[task.type]}`} onClick={() => setSelectedTask(task)}>
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <TypeIcon className="h-6 w-6" />
                       <div>
-                        <h3 className="font-semibold text-foreground">
-                          {task.title}
-                        </h3>
-                        <p className="text-sm capitalize text-muted-foreground">
-                          {task.type}
-                        </p>
+                        <h3 className="font-semibold text-foreground">{task.title}</h3>
+                        <p className="text-sm capitalize text-muted-foreground">{task.type}</p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-background px-3 py-1 text-sm font-medium text-foreground">
-                      {task.maxScore} pts
-                    </span>
+                    <span className="rounded-full bg-background px-3 py-1 text-sm font-medium text-foreground">{task.maxScore} pts</span>
                   </div>
-
-                  {task.description && (
-                    <p className="mt-3 text-sm text-muted-foreground line-clamp-2">
-                      {task.description}
-                    </p>
-                  )}
-
-                  {task.dueDate && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Due: {new Date(task.dueDate).toLocaleDateString()}
-                    </p>
-                  )}
-
-                  <div className="mt-4 flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setFilesTaskId(task.id);
-                        setFilesTaskTitle(task.title);
-                      }}
-                      className="gap-1"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                      {fileCounts[task.id] > 0 && (
-                        <span className="text-xs">{fileCounts[task.id]}</span>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(task)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteId(task.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  {task.description && <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{task.description}</p>}
+                  {task.dueDate && <p className="mt-2 text-xs text-muted-foreground">Due: {new Date(task.dueDate).toLocaleDateString()}</p>}
+                  <div className="mt-4 flex justify-between items-center">
+                    {fileCounts[task.id] > 0 && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Paperclip className="h-3 w-3" />
+                        {fileCounts[task.id]} files
+                      </div>
+                    )}
+                    <div className="flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 ml-auto" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedTask(task)}><Eye className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(task)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteId(task.id)}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -417,10 +311,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this task and all associated grades and files.
-              This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This will permanently delete this task and all associated grades and files.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -428,18 +319,6 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <TaskFiles
-        taskId={filesTaskId || ""}
-        taskTitle={filesTaskTitle}
-        open={!!filesTaskId}
-        onOpenChange={(open) => {
-          if (!open) {
-            setFilesTaskId(null);
-            loadTasks(); // Refresh file counts
-          }
-        }}
-      />
     </div>
   );
 }

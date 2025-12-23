@@ -54,6 +54,27 @@ export interface Grade {
   gradedAt: Date;
 }
 
+export interface Attendance {
+  id: string;
+  classId: string;
+  studentId: string;
+  date: string; // YYYY-MM-DD format
+  status: 'present' | 'absent' | 'late' | 'excused';
+  notes?: string;
+  createdAt: Date;
+}
+
+export interface TeacherFile {
+  id: string;
+  classId: string;
+  name: string;
+  type: string;
+  size: number;
+  data: Blob;
+  description?: string;
+  createdAt: Date;
+}
+
 interface TeacherDeskDB extends DBSchema {
   institutes: {
     key: string;
@@ -85,13 +106,23 @@ interface TeacherDeskDB extends DBSchema {
     value: TaskFile;
     indexes: { 'by-task': string };
   };
+  attendance: {
+    key: string;
+    value: Attendance;
+    indexes: { 'by-class': string; 'by-student': string; 'by-date': string };
+  };
+  teacherFiles: {
+    key: string;
+    value: TeacherFile;
+    indexes: { 'by-class': string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 3, {
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 4, {
       upgrade(db, oldVersion) {
         // Create institutes store
         if (!db.objectStoreNames.contains('institutes')) {
@@ -112,7 +143,6 @@ export function getDB() {
           studentStore.createIndex('by-name', 'name');
           studentStore.createIndex('by-class', 'classId');
         } else if (oldVersion < 2) {
-          // Add classId index if upgrading
           const tx = db.transaction as any;
           if (tx && tx.objectStore) {
             const studentStore = tx.objectStore('students');
@@ -145,10 +175,24 @@ export function getDB() {
           gradeStore.createIndex('by-task', 'taskId');
         }
 
-        // Handle taskFiles store (new in version 3)
+        // Handle taskFiles store
         if (!db.objectStoreNames.contains('taskFiles')) {
           const taskFilesStore = db.createObjectStore('taskFiles', { keyPath: 'id' });
           taskFilesStore.createIndex('by-task', 'taskId');
+        }
+
+        // Handle attendance store (new in version 4)
+        if (!db.objectStoreNames.contains('attendance')) {
+          const attendanceStore = db.createObjectStore('attendance', { keyPath: 'id' });
+          attendanceStore.createIndex('by-class', 'classId');
+          attendanceStore.createIndex('by-student', 'studentId');
+          attendanceStore.createIndex('by-date', 'date');
+        }
+
+        // Handle teacherFiles store (new in version 4)
+        if (!db.objectStoreNames.contains('teacherFiles')) {
+          const teacherFilesStore = db.createObjectStore('teacherFiles', { keyPath: 'id' });
+          teacherFilesStore.createIndex('by-class', 'classId');
         }
       },
     });
@@ -407,4 +451,89 @@ export async function deleteTaskFile(id: string): Promise<void> {
 export async function getTaskFile(id: string): Promise<TaskFile | undefined> {
   const db = await getDB();
   return db.get('taskFiles', id);
+}
+
+// Attendance operations
+export async function getAttendanceByClass(classId: string): Promise<Attendance[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('attendance', 'by-class', classId);
+}
+
+export async function getAttendanceByDate(classId: string, date: string): Promise<Attendance[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex('attendance', 'by-class', classId);
+  return all.filter(a => a.date === date);
+}
+
+export async function upsertAttendance(
+  classId: string,
+  studentId: string,
+  date: string,
+  status: Attendance['status'],
+  notes?: string
+): Promise<Attendance> {
+  const db = await getDB();
+  const existing = (await db.getAllFromIndex('attendance', 'by-class', classId))
+    .find(a => a.studentId === studentId && a.date === date);
+  
+  if (existing) {
+    const updated = { ...existing, status, notes };
+    await db.put('attendance', updated);
+    return updated;
+  }
+  
+  const newRecord: Attendance = {
+    id: crypto.randomUUID(),
+    classId,
+    studentId,
+    date,
+    status,
+    notes,
+    createdAt: new Date(),
+  };
+  await db.add('attendance', newRecord);
+  return newRecord;
+}
+
+export async function deleteAttendanceByClass(classId: string): Promise<void> {
+  const db = await getDB();
+  const records = await db.getAllFromIndex('attendance', 'by-class', classId);
+  for (const record of records) {
+    await db.delete('attendance', record.id);
+  }
+}
+
+// TeacherFile operations
+export async function getTeacherFilesByClass(classId: string): Promise<TeacherFile[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('teacherFiles', 'by-class', classId);
+}
+
+export async function addTeacherFile(file: Omit<TeacherFile, 'id' | 'createdAt'>): Promise<TeacherFile> {
+  const db = await getDB();
+  const newFile: TeacherFile = {
+    ...file,
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+  };
+  await db.add('teacherFiles', newFile);
+  return newFile;
+}
+
+export async function deleteTeacherFile(id: string): Promise<void> {
+  const db = await getDB();
+  await db.delete('teacherFiles', id);
+}
+
+export async function getTeacherFile(id: string): Promise<TeacherFile | undefined> {
+  const db = await getDB();
+  return db.get('teacherFiles', id);
+}
+
+export async function deleteTeacherFilesByClass(classId: string): Promise<void> {
+  const db = await getDB();
+  const files = await db.getAllFromIndex('teacherFiles', 'by-class', classId);
+  for (const file of files) {
+    await db.delete('teacherFiles', file.id);
+  }
 }
