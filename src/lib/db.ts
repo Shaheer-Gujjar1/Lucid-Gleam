@@ -1,7 +1,23 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
+export interface Institute {
+  id: string;
+  name: string;
+  address?: string;
+  createdAt: Date;
+}
+
+export interface Class {
+  id: string;
+  instituteId: string;
+  name: string;
+  subject?: string;
+  createdAt: Date;
+}
+
 export interface Student {
   id: string;
+  classId: string;
   name: string;
   email?: string;
   photo?: string;
@@ -10,6 +26,7 @@ export interface Student {
 
 export interface Task {
   id: string;
+  classId: string;
   title: string;
   type: 'assignment' | 'quiz' | 'presentation' | 'project' | 'other';
   description?: string;
@@ -28,15 +45,25 @@ export interface Grade {
 }
 
 interface TeacherDeskDB extends DBSchema {
+  institutes: {
+    key: string;
+    value: Institute;
+    indexes: { 'by-name': string };
+  };
+  classes: {
+    key: string;
+    value: Class;
+    indexes: { 'by-institute': string; 'by-name': string };
+  };
   students: {
     key: string;
     value: Student;
-    indexes: { 'by-name': string };
+    indexes: { 'by-name': string; 'by-class': string };
   };
   tasks: {
     key: string;
     value: Task;
-    indexes: { 'by-type': string; 'by-date': Date };
+    indexes: { 'by-type': string; 'by-date': Date; 'by-class': string };
   };
   grades: {
     key: string;
@@ -49,28 +76,159 @@ let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 1, {
-      upgrade(db) {
-        const studentStore = db.createObjectStore('students', { keyPath: 'id' });
-        studentStore.createIndex('by-name', 'name');
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 2, {
+      upgrade(db, oldVersion) {
+        // Create institutes store
+        if (!db.objectStoreNames.contains('institutes')) {
+          const instituteStore = db.createObjectStore('institutes', { keyPath: 'id' });
+          instituteStore.createIndex('by-name', 'name');
+        }
 
-        const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
-        taskStore.createIndex('by-type', 'type');
-        taskStore.createIndex('by-date', 'createdAt');
+        // Create classes store
+        if (!db.objectStoreNames.contains('classes')) {
+          const classStore = db.createObjectStore('classes', { keyPath: 'id' });
+          classStore.createIndex('by-institute', 'instituteId');
+          classStore.createIndex('by-name', 'name');
+        }
 
-        const gradeStore = db.createObjectStore('grades', { keyPath: 'id' });
-        gradeStore.createIndex('by-student', 'studentId');
-        gradeStore.createIndex('by-task', 'taskId');
+        // Handle students store
+        if (!db.objectStoreNames.contains('students')) {
+          const studentStore = db.createObjectStore('students', { keyPath: 'id' });
+          studentStore.createIndex('by-name', 'name');
+          studentStore.createIndex('by-class', 'classId');
+        } else if (oldVersion < 2) {
+          // Add classId index if upgrading
+          const tx = db.transaction as any;
+          if (tx && tx.objectStore) {
+            const studentStore = tx.objectStore('students');
+            if (!studentStore.indexNames.contains('by-class')) {
+              studentStore.createIndex('by-class', 'classId');
+            }
+          }
+        }
+
+        // Handle tasks store
+        if (!db.objectStoreNames.contains('tasks')) {
+          const taskStore = db.createObjectStore('tasks', { keyPath: 'id' });
+          taskStore.createIndex('by-type', 'type');
+          taskStore.createIndex('by-date', 'createdAt');
+          taskStore.createIndex('by-class', 'classId');
+        } else if (oldVersion < 2) {
+          const tx = db.transaction as any;
+          if (tx && tx.objectStore) {
+            const taskStore = tx.objectStore('tasks');
+            if (!taskStore.indexNames.contains('by-class')) {
+              taskStore.createIndex('by-class', 'classId');
+            }
+          }
+        }
+
+        // Handle grades store
+        if (!db.objectStoreNames.contains('grades')) {
+          const gradeStore = db.createObjectStore('grades', { keyPath: 'id' });
+          gradeStore.createIndex('by-student', 'studentId');
+          gradeStore.createIndex('by-task', 'taskId');
+        }
       },
     });
   }
   return dbPromise;
 }
 
+// Institute operations
+export async function getAllInstitutes(): Promise<Institute[]> {
+  const db = await getDB();
+  return db.getAll('institutes');
+}
+
+export async function getInstitute(id: string): Promise<Institute | undefined> {
+  const db = await getDB();
+  return db.get('institutes', id);
+}
+
+export async function addInstitute(institute: Omit<Institute, 'id' | 'createdAt'>): Promise<Institute> {
+  const db = await getDB();
+  const newInstitute: Institute = {
+    ...institute,
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+  };
+  await db.add('institutes', newInstitute);
+  return newInstitute;
+}
+
+export async function updateInstitute(institute: Institute): Promise<Institute> {
+  const db = await getDB();
+  await db.put('institutes', institute);
+  return institute;
+}
+
+export async function deleteInstitute(id: string): Promise<void> {
+  const db = await getDB();
+  // Delete all classes in this institute (which will cascade to students, tasks, grades)
+  const classes = await db.getAllFromIndex('classes', 'by-institute', id);
+  for (const cls of classes) {
+    await deleteClass(cls.id);
+  }
+  await db.delete('institutes', id);
+}
+
+// Class operations
+export async function getAllClasses(): Promise<Class[]> {
+  const db = await getDB();
+  return db.getAll('classes');
+}
+
+export async function getClassesByInstitute(instituteId: string): Promise<Class[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('classes', 'by-institute', instituteId);
+}
+
+export async function getClass(id: string): Promise<Class | undefined> {
+  const db = await getDB();
+  return db.get('classes', id);
+}
+
+export async function addClass(classData: Omit<Class, 'id' | 'createdAt'>): Promise<Class> {
+  const db = await getDB();
+  const newClass: Class = {
+    ...classData,
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+  };
+  await db.add('classes', newClass);
+  return newClass;
+}
+
+export async function updateClass(classData: Class): Promise<Class> {
+  const db = await getDB();
+  await db.put('classes', classData);
+  return classData;
+}
+
+export async function deleteClass(id: string): Promise<void> {
+  const db = await getDB();
+  // Delete all students and tasks in this class
+  const students = await getStudentsByClass(id);
+  for (const student of students) {
+    await deleteStudent(student.id);
+  }
+  const tasks = await getTasksByClass(id);
+  for (const task of tasks) {
+    await deleteTask(task.id);
+  }
+  await db.delete('classes', id);
+}
+
 // Student operations
 export async function getAllStudents(): Promise<Student[]> {
   const db = await getDB();
   return db.getAll('students');
+}
+
+export async function getStudentsByClass(classId: string): Promise<Student[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('students', 'by-class', classId);
 }
 
 export async function getStudent(id: string): Promise<Student | undefined> {
@@ -98,7 +256,6 @@ export async function updateStudent(student: Student): Promise<Student> {
 export async function deleteStudent(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('students', id);
-  // Also delete associated grades
   const grades = await db.getAllFromIndex('grades', 'by-student', id);
   for (const grade of grades) {
     await db.delete('grades', grade.id);
@@ -109,6 +266,11 @@ export async function deleteStudent(id: string): Promise<void> {
 export async function getAllTasks(): Promise<Task[]> {
   const db = await getDB();
   return db.getAll('tasks');
+}
+
+export async function getTasksByClass(classId: string): Promise<Task[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('tasks', 'by-class', classId);
 }
 
 export async function getTask(id: string): Promise<Task | undefined> {
@@ -136,7 +298,6 @@ export async function updateTask(task: Task): Promise<Task> {
 export async function deleteTask(id: string): Promise<void> {
   const db = await getDB();
   await db.delete('tasks', id);
-  // Also delete associated grades
   const grades = await db.getAllFromIndex('grades', 'by-task', id);
   for (const grade of grades) {
     await db.delete('grades', grade.id);

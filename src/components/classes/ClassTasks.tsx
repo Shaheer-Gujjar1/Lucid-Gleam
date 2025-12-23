@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
-import { getAllTasks, addTask, updateTask, deleteTask, Task } from "@/lib/db";
+import { getTasksByClass, addTask, updateTask, deleteTask, Task } from "@/lib/db";
 
 const taskTypes = [
   { value: "assignment", label: "Assignment", icon: FileText },
@@ -48,7 +48,12 @@ const taskTypeColors: Record<string, string> = {
   other: "bg-muted text-muted-foreground border-border",
 };
 
-export function TaskList() {
+interface ClassTasksProps {
+  classId: string;
+  onDataChange?: () => void;
+}
+
+export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -66,10 +71,10 @@ export function TaskList() {
 
   useEffect(() => {
     loadTasks();
-  }, []);
+  }, [classId]);
 
   async function loadTasks() {
-    const data = await getAllTasks();
+    const data = await getTasksByClass(classId);
     setTasks(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     setLoading(false);
   }
@@ -100,6 +105,7 @@ export function TaskList() {
         toast.success("Task updated successfully");
       } else {
         await addTask({
+          classId,
           title: formData.title,
           type: formData.type,
           description: formData.description,
@@ -118,6 +124,7 @@ export function TaskList() {
         dueDate: "",
       });
       loadTasks();
+      onDataChange?.();
     } catch (error) {
       toast.error("An error occurred");
     }
@@ -143,6 +150,7 @@ export function TaskList() {
       toast.success("Task deleted");
       setDeleteId(null);
       loadTasks();
+      onDataChange?.();
     }
   };
 
@@ -153,7 +161,7 @@ export function TaskList() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -162,11 +170,26 @@ export function TaskList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Tasks</h1>
-          <p className="text-muted-foreground">
-            Create and manage assignments, quizzes, and projects.
-          </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={filterType === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterType("all")}
+          >
+            All
+          </Button>
+          {taskTypes.map((type) => (
+            <Button
+              key={type.value}
+              variant={filterType === type.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterType(type.value)}
+              className="gap-2"
+            >
+              <type.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{type.label}</span>
+            </Button>
+          ))}
         </div>
         <Dialog
           open={isDialogOpen}
@@ -289,28 +312,6 @@ export function TaskList() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant={filterType === "all" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setFilterType("all")}
-        >
-          All
-        </Button>
-        {taskTypes.map((type) => (
-          <Button
-            key={type.value}
-            variant={filterType === type.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterType(type.value)}
-            className="gap-2"
-          >
-            <type.icon className="h-4 w-4" />
-            {type.label}
-          </Button>
-        ))}
       </div>
 
       {filteredTasks.length === 0 ? (
