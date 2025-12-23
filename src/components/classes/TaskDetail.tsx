@@ -21,12 +21,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   ArrowLeft,
   Upload,
@@ -39,6 +37,7 @@ import {
   Save,
   Check,
   User,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -95,9 +94,9 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [deleteFileId, setDeleteFileId] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<TaskFile | null>(null);
-  const [editingFile, setEditingFile] = useState<TaskFile | null>(null);
+  const [editingFileId, setEditingFileId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [editScore, setEditScore] = useState("");
-  const [editStudentId, setEditStudentId] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -189,37 +188,50 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     }
   };
 
-  const handleEditFile = (file: TaskFile) => {
-    setEditingFile(file);
-    setEditScore(file.score?.toString() || "");
-    setEditStudentId(file.studentId || "");
+  const handleSelectStudent = async (fileId: string, studentId: string | null) => {
+    const file = files.find(f => f.id === fileId);
+    if (!file) return;
+
+    setSaving(prev => ({ ...prev, [fileId]: true }));
+
+    try {
+      await updateTaskFile({
+        ...file,
+        studentId: studentId || undefined,
+      });
+      toast.success(studentId ? "Student tagged" : "Student untagged");
+      setEditingFileId(null);
+      setSearchQuery("");
+      loadData();
+      onDataChange?.();
+    } catch (error) {
+      toast.error("Failed to update");
+    } finally {
+      setSaving(prev => ({ ...prev, [fileId]: false }));
+    }
   };
 
-  const handleSaveFileDetails = async () => {
-    if (!editingFile) return;
-
-    const score = editScore ? parseFloat(editScore) : undefined;
-    if (editScore && (isNaN(score!) || score! < 0 || score! > task.maxScore)) {
+  const handleSaveScore = async (file: TaskFile, scoreValue: string) => {
+    const score = scoreValue ? parseFloat(scoreValue) : undefined;
+    if (scoreValue && (isNaN(score!) || score! < 0 || score! > task.maxScore)) {
       toast.error(`Score must be between 0 and ${task.maxScore}`);
       return;
     }
 
-    setSaving(prev => ({ ...prev, [editingFile.id]: true }));
+    setSaving(prev => ({ ...prev, [file.id]: true }));
 
     try {
       await updateTaskFile({
-        ...editingFile,
-        studentId: editStudentId || undefined,
+        ...file,
         score,
       });
-      toast.success("File details saved");
-      setEditingFile(null);
+      toast.success("Score saved");
       loadData();
       onDataChange?.();
     } catch (error) {
-      toast.error("Failed to save file details");
+      toast.error("Failed to save score");
     } finally {
-      setSaving(prev => ({ ...prev, [editingFile.id]: false }));
+      setSaving(prev => ({ ...prev, [file.id]: false }));
     }
   };
 
@@ -228,6 +240,10 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     const student = students.find(s => s.id === studentId);
     return student?.name;
   };
+
+  const filteredStudents = students.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -260,7 +276,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
         </div>
       </div>
 
-      {/* Files Section - Full Width */}
+      {/* Files Section */}
       <Card className="border-none shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-card-foreground">
@@ -320,18 +336,111 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                       </div>
                     </div>
                     
-                    {/* Student & Grade Info */}
-                    <div className="px-3 pb-2 space-y-1">
-                      {studentName && (
-                        <div className="flex items-center gap-1.5 text-sm">
-                          <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-foreground font-medium">{studentName}</span>
+                    {/* Student Tag & Score */}
+                    <div className="px-3 pb-2 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Popover 
+                          open={editingFileId === file.id} 
+                          onOpenChange={(open) => {
+                            setEditingFileId(open ? file.id : null);
+                            if (!open) setSearchQuery("");
+                          }}
+                        >
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1.5 text-xs flex-1 justify-start"
+                            >
+                              <User className="h-3.5 w-3.5" />
+                              {studentName || "Tag student"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-64 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                            <div className="p-2 border-b border-border">
+                              <div className="relative">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="Search students..."
+                                  value={searchQuery}
+                                  onChange={(e) => setSearchQuery(e.target.value)}
+                                  className="pl-8 h-8"
+                                />
+                              </div>
+                            </div>
+                            <ScrollArea className="max-h-48">
+                              <div className="p-1">
+                                {file.studentId && (
+                                  <button
+                                    onClick={() => handleSelectStudent(file.id, null)}
+                                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted text-destructive"
+                                  >
+                                    Remove tag
+                                  </button>
+                                )}
+                                {filteredStudents.length === 0 ? (
+                                  <p className="px-3 py-2 text-sm text-muted-foreground">
+                                    No students found
+                                  </p>
+                                ) : (
+                                  filteredStudents.map((student) => (
+                                    <button
+                                      key={student.id}
+                                      onClick={() => handleSelectStudent(file.id, student.id)}
+                                      className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted flex items-center gap-2"
+                                    >
+                                      {student.photo ? (
+                                        <img
+                                          src={student.photo}
+                                          alt=""
+                                          className="h-6 w-6 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground">
+                                          {student.name.charAt(0)}
+                                        </div>
+                                      )}
+                                      <span>{student.name}</span>
+                                      {student.id === file.studentId && (
+                                        <Check className="h-4 w-4 ml-auto text-primary" />
+                                      )}
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            </ScrollArea>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      {/* Score input - only show if student is tagged */}
+                      {file.studentId && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max={task.maxScore}
+                            defaultValue={file.score?.toString() || ""}
+                            placeholder="Score"
+                            className="h-7 text-xs w-20"
+                            onBlur={(e) => {
+                              if (e.target.value !== (file.score?.toString() || "")) {
+                                handleSaveScore(file, e.target.value);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                (e.target as HTMLInputElement).blur();
+                              }
+                            }}
+                          />
+                          <span className="text-xs text-muted-foreground">/ {task.maxScore}</span>
+                          {file.score !== undefined && (
+                            <Badge variant="secondary" className="text-xs ml-auto">
+                              {file.score}/{task.maxScore}
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                      {file.score !== undefined && (
-                        <Badge variant="secondary" className="text-xs">
-                          Score: {file.score}/{task.maxScore}
-                        </Badge>
                       )}
                     </div>
 
@@ -345,15 +454,6 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                       >
                         <Eye className="h-3.5 w-3.5 mr-1" />
                         View
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-8 text-xs"
-                        onClick={() => handleEditFile(file)}
-                      >
-                        <User className="h-3.5 w-3.5 mr-1" />
-                        Tag
                       </Button>
                       <Button
                         variant="ghost"
@@ -404,65 +504,6 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
               )}
             </div>
           </ScrollArea>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit File Details Dialog */}
-      <Dialog open={!!editingFile} onOpenChange={() => setEditingFile(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tag Student & Grade</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Student</label>
-              <Select value={editStudentId} onValueChange={setEditStudentId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select student (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">No student</SelectItem>
-                  {students.map((student) => (
-                    <SelectItem key={student.id} value={student.id}>
-                      {student.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Score (out of {task.maxScore})
-              </label>
-              <Input
-                type="number"
-                min="0"
-                max={task.maxScore}
-                value={editScore}
-                onChange={(e) => setEditScore(e.target.value)}
-                placeholder="Enter score (optional)"
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditingFile(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveFileDetails}
-              disabled={saving[editingFile?.id || ""]}
-              className="gap-2"
-            >
-              {saving[editingFile?.id || ""] ? (
-                "Saving..."
-              ) : (
-                <>
-                  <Save className="h-4 w-4" />
-                  Save
-                </>
-              )}
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
 
