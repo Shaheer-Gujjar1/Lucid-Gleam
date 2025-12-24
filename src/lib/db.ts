@@ -708,3 +708,29 @@ export async function deleteBehaviourByClass(classId: string): Promise<void> {
     await db.delete('behaviour', record.id);
   }
 }
+
+// Clear all data
+export async function clearAllData(): Promise<void> {
+  const db = await getDB();
+  
+  // Clear all object stores
+  const tx = db.transaction(
+    ['institutes', 'classes', 'students', 'tasks', 'grades', 'taskFiles', 'attendance', 'teacherFiles', 'behaviour'],
+    'readwrite'
+  );
+  
+  await Promise.all([
+    tx.objectStore('grades').clear(),
+    tx.objectStore('taskFiles').clear(),
+    tx.objectStore('attendance').clear(),
+    tx.objectStore('behaviour').clear(),
+    tx.objectStore('teacherFiles').clear(),
+    tx.objectStore('tasks').clear(),
+    tx.objectStore('students').clear(),
+    tx.objectStore('classes').clear(),
+    tx.objectStore('institutes').clear(),
+  ]);
+  
+  await tx.done;
+  emitDataChange('institute', 'delete', 'all');
+}

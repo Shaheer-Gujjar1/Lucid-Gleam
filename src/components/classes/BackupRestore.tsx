@@ -17,10 +17,10 @@ import {
 import { toast } from "sonner";
 import { 
   getAllInstitutes, getAllClasses, getAllStudents, getAllTasks, getAllGrades,
-  addInstitute, addClass, addStudent, addTask, addGrade,
+  addInstitute, addClass, addStudent, addTask, addGrade, clearAllData,
   Institute, Class, Student, Task, Grade
 } from "@/lib/db";
-import { Download, Upload, FileJson, Database, AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
+import { Download, Upload, FileJson, Database, AlertTriangle, CheckCircle, Loader2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 interface BackupData {
@@ -36,7 +36,11 @@ interface BackupData {
 export function BackupRestore() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showFinalClearDialog, setShowFinalClearDialog] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
   const [pendingBackup, setPendingBackup] = useState<BackupData | null>(null);
   const [importStats, setImportStats] = useState<{
     institutes: number;
@@ -197,6 +201,33 @@ export function BackupRestore() {
     setPendingBackup(null);
   };
 
+  const handleClearFirstWarning = () => {
+    setShowClearDialog(false);
+    setShowFinalClearDialog(true);
+  };
+
+  const handleClearAllData = async () => {
+    if (confirmText !== "DELETE ALL") {
+      toast.error("Please type DELETE ALL to confirm");
+      return;
+    }
+
+    setIsClearing(true);
+    setShowFinalClearDialog(false);
+
+    try {
+      await clearAllData();
+      toast.success("All data has been cleared successfully");
+      setConfirmText("");
+      setImportStats(null);
+    } catch (error) {
+      toast.error("Failed to clear data");
+      console.error(error);
+    }
+
+    setIsClearing(false);
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -271,6 +302,48 @@ export function BackupRestore() {
         </Card>
       </div>
 
+      {/* Danger Zone - Clear All Data */}
+      <Card className="border-destructive/50 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Trash2 className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription>
+            Irreversible actions that permanently delete your data
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+            <AlertTriangle className="h-10 w-10 text-destructive" />
+            <div className="flex-1">
+              <p className="font-medium text-foreground">Clear All Data</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete all institutes, classes, students, tasks, grades, and files. This cannot be undone.
+              </p>
+            </div>
+            <Button 
+              variant="destructive" 
+              onClick={() => setShowClearDialog(true)}
+              disabled={isClearing}
+              className="gap-2"
+            >
+              {isClearing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Clearing...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Clear All
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {importStats && (
         <Card className="border-none shadow-lg">
           <CardHeader>
@@ -344,6 +417,84 @@ export function BackupRestore() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={restoreBackup}>Restore</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear All Data - First Warning */}
+      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Clear All Data?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>This action will permanently delete ALL your data including:</p>
+              <ul className="list-disc list-inside text-sm space-y-1 mt-2">
+                <li>All institutes and their settings</li>
+                <li>All classes and schedules</li>
+                <li>All students and their records</li>
+                <li>All tasks, grades, and feedback</li>
+                <li>All attendance and behaviour records</li>
+                <li>All uploaded files</li>
+              </ul>
+              <p className="font-semibold text-destructive mt-4">
+                This action CANNOT be undone!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearFirstWarning}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              I understand, continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear All Data - Final Confirmation */}
+      <AlertDialog open={showFinalClearDialog} onOpenChange={(open) => {
+        setShowFinalClearDialog(open);
+        if (!open) setConfirmText("");
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Final Confirmation Required
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <p className="mb-4">
+                To confirm deletion, please type <span className="font-mono font-bold">DELETE ALL</span> in the box below:
+              </p>
+              <Input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="Type DELETE ALL"
+                className="font-mono"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmText("")}>Cancel</AlertDialogCancel>
+            <Button 
+              onClick={handleClearAllData}
+              disabled={confirmText !== "DELETE ALL" || isClearing}
+              variant="destructive"
+            >
+              {isClearing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Clearing...
+                </>
+              ) : (
+                "Delete Everything"
+              )}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
