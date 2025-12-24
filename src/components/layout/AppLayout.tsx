@@ -18,6 +18,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { FloatingOrbs } from "@/components/ui/FloatingOrbs";
 import { useState, useEffect } from "react";
 import { getAllClasses, getAllStudents, getAllTasks, Task, Class } from "@/lib/db";
 import { differenceInDays, isPast, isToday, isTomorrow, format } from "date-fns";
@@ -122,30 +123,31 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      <FloatingOrbs />
+      <div className="min-h-screen flex w-full p-4">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0 ml-4">
-          <header className="sticky top-0 z-50 rounded-2xl border border-border/30 bg-card/60 backdrop-blur-xl shadow-lg shadow-primary/5 mb-4">
+          <header className="sticky top-0 z-50 rounded-2xl glass-strong glow-primary-sm mb-4 animate-fade-in-up">
             <div className="flex h-16 items-center justify-between gap-4 px-6">
               <div className="flex items-center gap-4">
-                <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
+                <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors duration-300" />
                 <Link to="/" className="flex items-center gap-3 group">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-md group-hover:shadow-lg transition-all duration-300">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-chart-2 text-primary-foreground shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 group-hover:scale-105 transition-all duration-300">
                     <GraduationCap className="h-5 w-5" />
                   </div>
                   <div className="hidden sm:block">
-                    <h1 className="text-xl font-bold text-foreground tracking-tight">Lucid Gleam</h1>
-                    <p className="text-xs text-muted-foreground -mt-0.5">Teacher's Desk</p>
+                    <h1 className="text-xl font-bold text-foreground tracking-tight font-display">TeachFlow</h1>
+                    <p className="text-xs text-muted-foreground -mt-0.5">Class Management</p>
                   </div>
                 </Link>
               </div>
 
               <div className="flex-1 max-w-md hidden md:block">
-                <div className="relative cursor-pointer" onClick={() => setSearchOpen(true)}>
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative cursor-pointer group" onClick={() => setSearchOpen(true)}>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
                   <Input 
                     placeholder="Search... (⌘K)" 
-                    className="pl-10 bg-background/50 border-border/50 focus:border-primary/50 transition-colors cursor-pointer"
+                    className="pl-10 glass border-border/30 focus:border-primary/50 hover:border-primary/30 transition-all duration-300 cursor-pointer"
                     readOnly
                   />
                 </div>
@@ -155,10 +157,10 @@ export function AppLayout() {
                 {/* Notifications Popover - Real Data */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
+                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10 relative transition-all duration-300">
                       <Bell className="h-5 w-5" />
                       {overdueCount > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-xs flex items-center justify-center font-medium animate-bounce-subtle shadow-lg shadow-destructive/30">
                           {overdueCount}
                         </span>
                       )}
@@ -206,7 +208,7 @@ export function AppLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 rounded-2xl border border-border/30 bg-card/40 backdrop-blur-sm overflow-auto">
+          <main className="flex-1 p-6 rounded-2xl glass overflow-auto animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <Outlet />
           </main>
         </div>
