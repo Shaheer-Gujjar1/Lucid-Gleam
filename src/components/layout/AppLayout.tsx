@@ -1,17 +1,10 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { GraduationCap, Bell, Search, Settings, User, LogOut, HelpCircle } from "lucide-react";
+import { GraduationCap, Bell, Search, User, AlertTriangle, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -26,27 +19,83 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useState, useEffect } from "react";
-import { getAllClasses, getAllStudents } from "@/lib/db";
+import { getAllClasses, getAllStudents, getAllTasks, Task, Class } from "@/lib/db";
+import { differenceInDays, isPast, isToday, isTomorrow, format } from "date-fns";
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  type: "overdue" | "today" | "tomorrow" | "upcoming";
+}
 
 export function AppLayout() {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const [classesData, studentsData] = await Promise.all([
+      const [classesData, studentsData, tasksData] = await Promise.all([
         getAllClasses(),
-        getAllStudents()
+        getAllStudents(),
+        getAllTasks()
       ]);
       setClasses(classesData);
       setStudents(studentsData);
+      
+      // Build real notifications from tasks
+      const now = new Date();
+      const taskNotifications: NotificationItem[] = tasksData
+        .filter(task => task.dueDate)
+        .map(task => {
+          const dueDate = new Date(task.dueDate!);
+          const daysUntil = differenceInDays(dueDate, now);
+          
+          let type: NotificationItem["type"];
+          let time: string;
+          
+          if (isPast(dueDate) && !isToday(dueDate)) {
+            type = "overdue";
+            time = `Overdue by ${Math.abs(daysUntil)} day(s)`;
+          } else if (isToday(dueDate)) {
+            type = "today";
+            time = "Due today";
+          } else if (isTomorrow(dueDate)) {
+            type = "tomorrow";
+            time = "Due tomorrow";
+          } else if (daysUntil <= 7) {
+            type = "upcoming";
+            time = `Due in ${daysUntil} days`;
+          } else {
+            return null;
+          }
+          
+          const cls = classesData.find(c => c.id === task.classId);
+          
+          return {
+            id: task.id,
+            title: task.title,
+            description: cls ? `${task.type} - ${cls.name}` : task.type,
+            time,
+            type
+          };
+        })
+        .filter((n): n is NotificationItem => n !== null)
+        .sort((a, b) => {
+          const order = { overdue: 0, today: 1, tomorrow: 2, upcoming: 3 };
+          return order[a.type] - order[b.type];
+        })
+        .slice(0, 10);
+      
+      setNotifications(taskNotifications);
     };
     loadData();
   }, []);
 
-  // Keyboard shortcut for search
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -58,11 +107,16 @@ export function AppLayout() {
     return () => document.removeEventListener("keydown", down);
   }, []);
 
-  const notifications = [
-    { id: 1, title: "Assignment due tomorrow", description: "Math Quiz - Class 10A", time: "2 hours ago" },
-    { id: 2, title: "New student enrolled", description: "John Doe joined Class 9B", time: "5 hours ago" },
-    { id: 3, title: "Grade report ready", description: "Monthly report for October", time: "1 day ago" },
-  ];
+  const getNotificationIcon = (type: NotificationItem["type"]) => {
+    switch (type) {
+      case "overdue": return <AlertTriangle className="h-4 w-4 text-destructive" />;
+      case "today": return <Bell className="h-4 w-4 text-chart-4" />;
+      case "tomorrow": return <Clock className="h-4 w-4 text-chart-3" />;
+      default: return <Calendar className="h-4 w-4 text-chart-1" />;
+    }
+  };
+
+  const overdueCount = notifications.filter(n => n.type === "overdue" || n.type === "today").length;
 
   return (
     <SidebarProvider>
@@ -85,10 +139,7 @@ export function AppLayout() {
               </div>
 
               <div className="flex-1 max-w-md hidden md:block">
-                <div 
-                  className="relative cursor-pointer"
-                  onClick={() => setSearchOpen(true)}
-                >
+                <div className="relative cursor-pointer" onClick={() => setSearchOpen(true)}>
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Search... (⌘K)" 
@@ -99,78 +150,48 @@ export function AppLayout() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Notifications Popover */}
+                {/* Notifications Popover - Real Data */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground relative">
                       <Bell className="h-5 w-5" />
-                      <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-primary" />
+                      {overdueCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-medium">
+                          {overdueCount}
+                        </span>
+                      )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
+                  <PopoverContent className="w-80 bg-popover" align="end">
                     <div className="space-y-3">
-                      <h4 className="font-semibold text-foreground">Notifications</h4>
-                      <div className="space-y-2">
-                        {notifications.map((notification) => (
-                          <div key={notification.id} className="flex flex-col gap-1 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
-                            <p className="text-sm font-medium text-foreground">{notification.title}</p>
-                            <p className="text-xs text-muted-foreground">{notification.description}</p>
-                            <p className="text-xs text-muted-foreground/70">{notification.time}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <Button variant="outline" size="sm" className="w-full">View all notifications</Button>
+                      <h4 className="font-semibold text-foreground">Upcoming Deadlines</h4>
+                      {notifications.length === 0 ? (
+                        <p className="text-sm text-muted-foreground py-4 text-center">No upcoming deadlines</p>
+                      ) : (
+                        <div className="space-y-2 max-h-80 overflow-y-auto">
+                          {notifications.map((notification) => (
+                            <div key={notification.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+                              {getNotificationIcon(notification.type)}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{notification.title}</p>
+                                <p className="text-xs text-muted-foreground">{notification.description}</p>
+                                <Badge 
+                                  variant={notification.type === "overdue" ? "destructive" : "secondary"} 
+                                  className="text-xs mt-1"
+                                >
+                                  {notification.time}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/settings")}>
+                        View all reminders
+                      </Button>
                     </div>
                   </PopoverContent>
                 </Popover>
-
-                {/* Settings Button - navigates to settings page */}
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={() => navigate("/settings")}
-                >
-                  <Settings className="h-5 w-5" />
-                </Button>
-
-                {/* Profile Dropdown */}
-                <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-border">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer">
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-accent-foreground flex items-center justify-center text-primary-foreground font-semibold text-sm shadow-md">
-                          T
-                        </div>
-                        <div className="hidden lg:block text-left">
-                          <p className="text-sm font-medium text-foreground">Teacher</p>
-                          <p className="text-xs text-muted-foreground">Admin</p>
-                        </div>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="cursor-pointer">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/settings")}>
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
-                        <HelpCircle className="mr-2 h-4 w-4" />
-                        Help & Support
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="cursor-pointer text-destructive">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Log out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
               </div>
             </div>
           </header>
@@ -190,7 +211,7 @@ export function AppLayout() {
               <CommandItem
                 key={cls.id}
                 onSelect={() => {
-                  navigate(`/class/${cls.id}`);
+                  navigate(`/institute/${cls.instituteId}/class/${cls.id}`);
                   setSearchOpen(false);
                 }}
               >
@@ -204,8 +225,9 @@ export function AppLayout() {
               <CommandItem
                 key={student.id}
                 onSelect={() => {
-                  if (student.classId) {
-                    navigate(`/class/${student.classId}`);
+                  const cls = classes.find(c => c.id === student.classId);
+                  if (cls) {
+                    navigate(`/institute/${cls.instituteId}/class/${cls.id}`);
                   }
                   setSearchOpen(false);
                 }}

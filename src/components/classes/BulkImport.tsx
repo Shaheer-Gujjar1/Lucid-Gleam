@@ -6,15 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
-import { addStudent, getAllClasses, Class } from "@/lib/db";
-import { Upload, FileSpreadsheet, Users, CheckCircle, XCircle, AlertCircle, Download } from "lucide-react";
+import { addStudent, getAllClasses, getAllInstitutes, Class, Institute } from "@/lib/db";
+import { Upload, FileSpreadsheet, Users, CheckCircle, XCircle, AlertCircle, Download, ChevronsUpDown, Check, BookOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface BulkImportProps {
   classId?: string;
@@ -33,14 +40,22 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
   const [isImporting, setIsImporting] = useState(false);
   const [textInput, setTextInput] = useState("");
   const [classes, setClasses] = useState<Class[]>([]);
+  const [institutes, setInstitutes] = useState<Institute[]>([]);
   const [selectedClassId, setSelectedClassId] = useState(initialClassId || "");
+  const [classSearchOpen, setClassSearchOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!initialClassId) {
-      getAllClasses().then(setClasses);
+      Promise.all([getAllClasses(), getAllInstitutes()]).then(([classesData, institutesData]) => {
+        setClasses(classesData);
+        setInstitutes(institutesData);
+      });
     }
   }, [initialClassId]);
+
+  const selectedClass = classes.find(c => c.id === selectedClassId);
+  const getInstituteName = (instituteId: string) => institutes.find(i => i.id === instituteId)?.name || "";
 
   const parseCSV = (content: string): ImportStudent[] => {
     const lines = content.trim().split("\n");
@@ -111,6 +126,7 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
   };
 
   const clearData = () => { setImportData([]); setTextInput(""); if (fileInputRef.current) fileInputRef.current.value = ""; };
+  
   const getStatusIcon = (status: string) => {
     if (status === "success") return <CheckCircle className="h-4 w-4 text-chart-1" />;
     if (status === "error") return <XCircle className="h-4 w-4 text-destructive" />;
@@ -125,15 +141,70 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
           <CardDescription>Import multiple students at once from a CSV file or text list</CardDescription>
         </CardHeader>
         <CardContent>
-          {!initialClassId && classes.length > 0 && (
-            <div className="mb-4">
-              <Label htmlFor="class-select">Select Class</Label>
-              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                <SelectTrigger id="class-select" className="mt-2"><SelectValue placeholder="Choose a class" /></SelectTrigger>
-                <SelectContent>{classes.map((cls) => <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>)}</SelectContent>
-              </Select>
+          {/* Searchable Class Selector */}
+          {!initialClassId && (
+            <div className="mb-6">
+              <Label className="text-sm font-medium mb-2 block">Select Class *</Label>
+              <Popover open={classSearchOpen} onOpenChange={setClassSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={classSearchOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedClass ? (
+                      <span className="flex items-center gap-2">
+                        <BookOpen className="h-4 w-4" />
+                        {selectedClass.name}
+                        {getInstituteName(selectedClass.instituteId) && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            {getInstituteName(selectedClass.instituteId)}
+                          </Badge>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">Search and select a class...</span>
+                    )}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0 bg-popover" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search classes..." />
+                    <CommandList>
+                      <CommandEmpty>No class found.</CommandEmpty>
+                      <CommandGroup>
+                        {classes.map((cls) => (
+                          <CommandItem
+                            key={cls.id}
+                            value={`${cls.name} ${getInstituteName(cls.instituteId)}`}
+                            onSelect={() => {
+                              setSelectedClassId(cls.id);
+                              setClassSearchOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedClassId === cls.id ? "opacity-100" : "opacity-0")} />
+                            <BookOpen className="mr-2 h-4 w-4" />
+                            <span>{cls.name}</span>
+                            {getInstituteName(cls.instituteId) && (
+                              <Badge variant="secondary" className="ml-auto text-xs">
+                                {getInstituteName(cls.instituteId)}
+                              </Badge>
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {classes.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-2">No classes available. Create a class first.</p>
+              )}
             </div>
           )}
+
           <Tabs defaultValue="file" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="file" className="gap-2"><FileSpreadsheet className="h-4 w-4" />CSV File</TabsTrigger>
@@ -159,6 +230,7 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
           </Tabs>
         </CardContent>
       </Card>
+
       {importData.length > 0 && (
         <Card className="border-none shadow-lg">
           <CardHeader>
@@ -166,7 +238,7 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
               <CardTitle className="text-card-foreground">Preview ({importData.length} students)</CardTitle>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={clearData}>Clear</Button>
-                <Button onClick={handleImport} disabled={isImporting} className="gap-2">
+                <Button onClick={handleImport} disabled={isImporting || (!initialClassId && !selectedClassId)} className="gap-2">
                   {isImporting ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />Importing...</> : <><Upload className="h-4 w-4" />Import All</>}
                 </Button>
               </div>
