@@ -63,6 +63,8 @@ export interface Attendance {
   classId: string;
   studentId: string;
   date: string; // YYYY-MM-DD format
+  lectureNumber: number; // 1, 2, 3, etc.
+  time?: string; // HH:MM format
   status: 'present' | 'absent' | 'late' | 'excused';
   notes?: string;
   createdAt: Date;
@@ -481,25 +483,27 @@ export async function getAttendanceByClass(classId: string): Promise<Attendance[
   return db.getAllFromIndex('attendance', 'by-class', classId);
 }
 
-export async function getAttendanceByDate(classId: string, date: string): Promise<Attendance[]> {
+export async function getAttendanceByDate(classId: string, date: string, lectureNumber?: number): Promise<Attendance[]> {
   const db = await getDB();
   const all = await db.getAllFromIndex('attendance', 'by-class', classId);
-  return all.filter(a => a.date === date);
+  return all.filter(a => a.date === date && (lectureNumber === undefined || a.lectureNumber === lectureNumber));
 }
 
 export async function upsertAttendance(
   classId: string,
   studentId: string,
   date: string,
+  lectureNumber: number,
   status: Attendance['status'],
+  time?: string,
   notes?: string
 ): Promise<Attendance> {
   const db = await getDB();
   const existing = (await db.getAllFromIndex('attendance', 'by-class', classId))
-    .find(a => a.studentId === studentId && a.date === date);
+    .find(a => a.studentId === studentId && a.date === date && a.lectureNumber === lectureNumber);
   
   if (existing) {
-    const updated = { ...existing, status, notes };
+    const updated = { ...existing, status, time, notes };
     await db.put('attendance', updated);
     return updated;
   }
@@ -509,12 +513,21 @@ export async function upsertAttendance(
     classId,
     studentId,
     date,
+    lectureNumber,
+    time,
     status,
     notes,
     createdAt: new Date(),
   };
   await db.add('attendance', newRecord);
   return newRecord;
+}
+
+export async function getLecturesForDate(classId: string, date: string): Promise<number[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex('attendance', 'by-class', classId);
+  const lectures = all.filter(a => a.date === date).map(a => a.lectureNumber);
+  return [...new Set(lectures)].sort((a, b) => a - b);
 }
 
 export async function deleteAttendanceByClass(classId: string): Promise<void> {
