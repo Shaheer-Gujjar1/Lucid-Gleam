@@ -89,10 +89,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/"}
                   tooltip="Home"
-                  className={cn(
-                    "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
-                    collapsed ? "mx-auto justify-center" : "mx-2"
-                  )}
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium group-data-[collapsible=icon]:mx-auto"
                 >
                   <NavLink to="/">
                     <Home className="h-4 w-4 shrink-0" />
@@ -105,10 +102,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/files"}
                   tooltip="Files"
-                  className={cn(
-                    "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
-                    collapsed ? "mx-auto justify-center" : "mx-2"
-                  )}
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium group-data-[collapsible=icon]:mx-auto"
                 >
                   <NavLink to="/files">
                     <FolderOpen className="h-4 w-4 shrink-0" />
@@ -121,10 +115,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/settings"}
                   tooltip="Settings"
-                  className={cn(
-                    "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
-                    collapsed ? "mx-auto justify-center" : "mx-2"
-                  )}
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium group-data-[collapsible=icon]:mx-auto"
                 >
                   <NavLink to="/settings">
                     <Settings className="h-4 w-4 shrink-0" />
@@ -153,10 +144,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActiveInstitute(institute.id) && !classId}
                       tooltip={institute.name}
-                      className={cn(
-                        "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
-                        collapsed ? "mx-auto justify-center" : "mx-2"
-                      )}
+                      className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium group-data-[collapsible=icon]:mx-auto"
                     >
                       <NavLink to={`/institute/${institute.id}`}>
                         <Building2 className="h-4 w-4 shrink-0" />
