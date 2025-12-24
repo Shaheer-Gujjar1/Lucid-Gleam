@@ -204,7 +204,7 @@ export function AppLayout() {
             {students.slice(0, 5).map(student => <CommandItem key={student.id} onSelect={() => {
             const cls = classes.find(c => c.id === student.classId);
             if (cls) {
-              navigate(`/institute/${cls.instituteId}/class/${cls.id}`);
+              navigate(`/institute/${cls.instituteId}/class/${cls.id}?tab=performance&studentId=${student.id}`);
             }
             setSearchOpen(false);
           }}>

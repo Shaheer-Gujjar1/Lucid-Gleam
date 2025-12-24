@@ -9,9 +9,10 @@ import { TrendingUp, TrendingDown, Award, Calendar, Target, BookOpen } from "luc
 
 interface StudentPerformanceProps {
   classId: string;
+  initialStudentId?: string;
 }
 
-export function StudentPerformance({ classId }: StudentPerformanceProps) {
+export function StudentPerformance({ classId, initialStudentId }: StudentPerformanceProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -39,7 +40,11 @@ export function StudentPerformance({ classId }: StudentPerformanceProps) {
       setGrades(classGrades);
       
       if (s.length > 0) {
-        setSelectedStudent(s[0].id);
+        // Use initialStudentId if provided and valid, otherwise use first student
+        const targetStudent = initialStudentId && s.some(st => st.id === initialStudentId) 
+          ? initialStudentId 
+          : s[0].id;
+        setSelectedStudent(targetStudent);
       }
       setLoading(false);
     }
