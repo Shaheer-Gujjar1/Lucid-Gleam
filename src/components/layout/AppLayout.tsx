@@ -11,6 +11,7 @@ import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, C
 import { FloatingOrbs } from "@/components/ui/FloatingOrbs";
 import { useState, useEffect } from "react";
 import { getAllClasses, getAllStudents, getAllTasks, Task, Class } from "@/lib/db";
+import { subscribeToDataChanges } from "@/lib/dataEvents";
 import { differenceInDays, isPast, isToday, isTomorrow, format } from "date-fns";
 interface NotificationItem {
   id: string;
@@ -27,55 +28,65 @@ export function AppLayout() {
   const [students, setStudents] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   useEffect(() => {
-    const loadData = async () => {
-      const [classesData, studentsData, tasksData] = await Promise.all([getAllClasses(), getAllStudents(), getAllTasks()]);
-      setClasses(classesData);
-      setStudents(studentsData);
-
-      // Build real notifications from tasks
-      const now = new Date();
-      const taskNotifications: NotificationItem[] = tasksData.filter(task => task.dueDate).map(task => {
-        const dueDate = new Date(task.dueDate!);
-        const daysUntil = differenceInDays(dueDate, now);
-        let type: NotificationItem["type"];
-        let time: string;
-        if (isPast(dueDate) && !isToday(dueDate)) {
-          type = "overdue";
-          time = `Overdue by ${Math.abs(daysUntil)} day(s)`;
-        } else if (isToday(dueDate)) {
-          type = "today";
-          time = "Due today";
-        } else if (isTomorrow(dueDate)) {
-          type = "tomorrow";
-          time = "Due tomorrow";
-        } else if (daysUntil <= 7) {
-          type = "upcoming";
-          time = `Due in ${daysUntil} days`;
-        } else {
-          return null;
-        }
-        const cls = classesData.find(c => c.id === task.classId);
-        return {
-          id: task.id,
-          classId: task.classId,
-          title: task.title,
-          description: cls ? `${task.type} - ${cls.name}` : task.type,
-          time,
-          type
-        };
-      }).filter((n): n is NotificationItem => n !== null).sort((a, b) => {
-        const order = {
-          overdue: 0,
-          today: 1,
-          tomorrow: 2,
-          upcoming: 3
-        };
-        return order[a.type] - order[b.type];
-      }).slice(0, 10);
-      setNotifications(taskNotifications);
-    };
     loadData();
+    
+    // Subscribe to data changes to refresh notifications
+    const unsubscribe = subscribeToDataChanges((event) => {
+      if (event.type === 'task' || event.type === 'class') {
+        loadData();
+      }
+    });
+    
+    return unsubscribe;
   }, []);
+
+  async function loadData() {
+    const [classesData, studentsData, tasksData] = await Promise.all([getAllClasses(), getAllStudents(), getAllTasks()]);
+    setClasses(classesData);
+    setStudents(studentsData);
+
+    // Build real notifications from tasks
+    const now = new Date();
+    const taskNotifications: NotificationItem[] = tasksData.filter(task => task.dueDate).map(task => {
+      const dueDate = new Date(task.dueDate!);
+      const daysUntil = differenceInDays(dueDate, now);
+      let type: NotificationItem["type"];
+      let time: string;
+      if (isPast(dueDate) && !isToday(dueDate)) {
+        type = "overdue";
+        time = `Overdue by ${Math.abs(daysUntil)} day(s)`;
+      } else if (isToday(dueDate)) {
+        type = "today";
+        time = "Due today";
+      } else if (isTomorrow(dueDate)) {
+        type = "tomorrow";
+        time = "Due tomorrow";
+      } else if (daysUntil <= 7) {
+        type = "upcoming";
+        time = `Due in ${daysUntil} days`;
+      } else {
+        return null;
+      }
+      const cls = classesData.find(c => c.id === task.classId);
+      return {
+        id: task.id,
+        classId: task.classId,
+        title: task.title,
+        description: cls ? `${task.type} - ${cls.name}` : task.type,
+        time,
+        type
+      };
+    }).filter((n): n is NotificationItem => n !== null).sort((a, b) => {
+      const order = {
+        overdue: 0,
+        today: 1,
+        tomorrow: 2,
+        upcoming: 3
+      };
+      return order[a.type] - order[b.type];
+    }).slice(0, 10);
+    setNotifications(taskNotifications);
+  }
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
