@@ -8,11 +8,26 @@ export interface Institute {
   createdAt: Date;
 }
 
+export interface LecturePeriod {
+  number: number;
+  startTime: string; // HH:MM
+  endTime: string;   // HH:MM
+}
+
+export interface ClassSubject {
+  id: string;
+  name: string;
+  color?: string; // For UI differentiation
+}
+
 export interface Class {
   id: string;
   instituteId: string;
   name: string;
-  subject?: string;
+  subject?: string; // Legacy single subject
+  subjects?: ClassSubject[]; // Multiple subjects
+  lectureCount?: number; // Number of lectures per day
+  lecturePeriods?: LecturePeriod[]; // Timetable for lectures
   createdAt: Date;
 }
 
@@ -62,6 +77,8 @@ export interface Attendance {
   id: string;
   classId: string;
   studentId: string;
+  subjectId?: string; // Which subject this attendance is for
+  subjectName?: string; // Denormalized for easier display
   date: string; // YYYY-MM-DD format
   lectureNumber: number; // 1, 2, 3, etc.
   time?: string; // HH:MM format
@@ -483,10 +500,14 @@ export async function getAttendanceByClass(classId: string): Promise<Attendance[
   return db.getAllFromIndex('attendance', 'by-class', classId);
 }
 
-export async function getAttendanceByDate(classId: string, date: string, lectureNumber?: number): Promise<Attendance[]> {
+export async function getAttendanceByDate(classId: string, date: string, lectureNumber?: number, subjectId?: string): Promise<Attendance[]> {
   const db = await getDB();
   const all = await db.getAllFromIndex('attendance', 'by-class', classId);
-  return all.filter(a => a.date === date && (lectureNumber === undefined || a.lectureNumber === lectureNumber));
+  return all.filter(a => 
+    a.date === date && 
+    (lectureNumber === undefined || a.lectureNumber === lectureNumber) &&
+    (subjectId === undefined || a.subjectId === subjectId)
+  );
 }
 
 export async function upsertAttendance(
@@ -496,14 +517,21 @@ export async function upsertAttendance(
   lectureNumber: number,
   status: Attendance['status'],
   time?: string,
+  subjectId?: string,
+  subjectName?: string,
   notes?: string
 ): Promise<Attendance> {
   const db = await getDB();
   const existing = (await db.getAllFromIndex('attendance', 'by-class', classId))
-    .find(a => a.studentId === studentId && a.date === date && a.lectureNumber === lectureNumber);
+    .find(a => 
+      a.studentId === studentId && 
+      a.date === date && 
+      a.lectureNumber === lectureNumber &&
+      (subjectId === undefined || a.subjectId === subjectId)
+    );
   
   if (existing) {
-    const updated = { ...existing, status, time, notes };
+    const updated = { ...existing, status, time, subjectId, subjectName, notes };
     await db.put('attendance', updated);
     return updated;
   }
@@ -512,6 +540,8 @@ export async function upsertAttendance(
     id: crypto.randomUUID(),
     classId,
     studentId,
+    subjectId,
+    subjectName,
     date,
     lectureNumber,
     time,
@@ -523,10 +553,12 @@ export async function upsertAttendance(
   return newRecord;
 }
 
-export async function getLecturesForDate(classId: string, date: string): Promise<number[]> {
+export async function getLecturesForDate(classId: string, date: string, subjectId?: string): Promise<number[]> {
   const db = await getDB();
   const all = await db.getAllFromIndex('attendance', 'by-class', classId);
-  const lectures = all.filter(a => a.date === date).map(a => a.lectureNumber);
+  const lectures = all
+    .filter(a => a.date === date && (subjectId === undefined || a.subjectId === subjectId))
+    .map(a => a.lectureNumber);
   return [...new Set(lectures)].sort((a, b) => a - b);
 }
 

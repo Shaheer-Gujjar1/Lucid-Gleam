@@ -17,16 +17,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Calendar, Clock, BookOpen, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Calendar, Clock, BookOpen, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Student,
   Attendance,
+  Class,
+  ClassSubject,
+  LecturePeriod,
   getStudentsByClass,
   getAttendanceByDate,
   upsertAttendance,
   getLecturesForDate,
+  getClass,
 } from "@/lib/db";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ClassAttendanceProps {
   classId: string;
@@ -38,8 +44,6 @@ const STATUS_OPTIONS: { value: Attendance["status"]; label: string; color: strin
   { value: "late", label: "Late", color: "bg-chart-3/20 text-accent-foreground" },
   { value: "excused", label: "Excused", color: "bg-muted text-muted-foreground" },
 ];
-
-const LECTURE_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 function formatDateForInput(date: Date): string {
   return date.toISOString().split("T")[0];
@@ -61,39 +65,63 @@ function getCurrentTime(): string {
 }
 
 export function ClassAttendance({ classId }: ClassAttendanceProps) {
+  const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
   const [selectedLecture, setSelectedLecture] = useState<number>(1);
+  const [selectedSubject, setSelectedSubject] = useState<ClassSubject | null>(null);
   const [lectureTime, setLectureTime] = useState<string>(getCurrentTime());
   const [existingLectures, setExistingLectures] = useState<number[]>([]);
   const [attendance, setAttendance] = useState<Record<string, Attendance["status"]>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
+  // Derived values
+  const subjects = classData?.subjects || [];
+  const hasSubjects = subjects.length > 0;
+  const lecturePeriods = classData?.lecturePeriods || [];
+  const lectureCount = classData?.lectureCount || 8;
+
   useEffect(() => {
-    loadStudents();
+    loadInitialData();
   }, [classId]);
 
   useEffect(() => {
-    if (students.length > 0) {
+    if (students.length > 0 && classData) {
       loadLecturesAndAttendance();
     }
-  }, [selectedDate, students]);
+  }, [selectedDate, students, classData]);
 
   useEffect(() => {
-    if (students.length > 0) {
+    if (students.length > 0 && classData) {
       loadAttendance();
     }
-  }, [selectedLecture]);
+  }, [selectedLecture, selectedSubject]);
 
-  async function loadStudents() {
-    const data = await getStudentsByClass(classId);
-    setStudents(data.sort((a, b) => a.name.localeCompare(b.name)));
+  async function loadInitialData() {
+    const [studentsData, classInfo] = await Promise.all([
+      getStudentsByClass(classId),
+      getClass(classId),
+    ]);
+    
+    setStudents(studentsData.sort((a, b) => a.name.localeCompare(b.name)));
+    setClassData(classInfo || null);
+    
+    // Auto-select first subject if available
+    if (classInfo?.subjects && classInfo.subjects.length > 0) {
+      setSelectedSubject(classInfo.subjects[0]);
+    }
+    
+    // Set initial lecture time from schedule if available
+    if (classInfo?.lecturePeriods && classInfo.lecturePeriods.length > 0) {
+      setLectureTime(classInfo.lecturePeriods[0].startTime);
+    }
+    
     setLoading(false);
   }
 
   async function loadLecturesAndAttendance() {
-    const lectures = await getLecturesForDate(classId, selectedDate);
+    const lectures = await getLecturesForDate(classId, selectedDate, selectedSubject?.id);
     setExistingLectures(lectures);
     
     // Auto-select first existing lecture or default to 1
@@ -105,16 +133,18 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   }
 
   async function loadAttendance() {
-    const records = await getAttendanceByDate(classId, selectedDate, selectedLecture);
+    const records = await getAttendanceByDate(classId, selectedDate, selectedLecture, selectedSubject?.id);
     const map: Record<string, Attendance["status"]> = {};
     records.forEach(r => {
       map[r.studentId] = r.status;
     });
     setAttendance(map);
     
-    // Set time from first record if exists
+    // Set time from first record if exists, or from schedule
     if (records.length > 0 && records[0].time) {
       setLectureTime(records[0].time);
+    } else if (lecturePeriods[selectedLecture - 1]) {
+      setLectureTime(lecturePeriods[selectedLecture - 1].startTime);
     }
   }
 
@@ -123,10 +153,19 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     setAttendance(prev => ({ ...prev, [studentId]: status }));
     
     try {
-      await upsertAttendance(classId, studentId, selectedDate, selectedLecture, status, lectureTime);
+      await upsertAttendance(
+        classId, 
+        studentId, 
+        selectedDate, 
+        selectedLecture, 
+        status, 
+        lectureTime,
+        selectedSubject?.id,
+        selectedSubject?.name
+      );
       
       // Refresh existing lectures list
-      const lectures = await getLecturesForDate(classId, selectedDate);
+      const lectures = await getLecturesForDate(classId, selectedDate, selectedSubject?.id);
       setExistingLectures(lectures);
       
       toast.success("Attendance saved");
@@ -139,12 +178,21 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
 
   const markAllPresent = async () => {
     for (const student of students) {
-      await upsertAttendance(classId, student.id, selectedDate, selectedLecture, "present", lectureTime);
+      await upsertAttendance(
+        classId, 
+        student.id, 
+        selectedDate, 
+        selectedLecture, 
+        "present", 
+        lectureTime,
+        selectedSubject?.id,
+        selectedSubject?.name
+      );
     }
     await loadAttendance();
     
     // Refresh existing lectures list
-    const lectures = await getLecturesForDate(classId, selectedDate);
+    const lectures = await getLecturesForDate(classId, selectedDate, selectedSubject?.id);
     setExistingLectures(lectures);
     
     toast.success("All students marked present");
@@ -152,10 +200,23 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
 
   const startNewLecture = () => {
     // Find next available lecture number
-    const nextLecture = LECTURE_OPTIONS.find(l => !existingLectures.includes(l)) || selectedLecture + 1;
-    setSelectedLecture(nextLecture);
-    setLectureTime(getCurrentTime());
+    const availableLectures = Array.from({ length: lectureCount }, (_, i) => i + 1);
+    const nextLecture = availableLectures.find(l => !existingLectures.includes(l)) || selectedLecture + 1;
+    setSelectedLecture(Math.min(nextLecture, lectureCount));
+    
+    // Set time from schedule if available
+    const periodTime = lecturePeriods[nextLecture - 1]?.startTime;
+    setLectureTime(periodTime || getCurrentTime());
     setAttendance({});
+  };
+
+  const handleLectureChange = (lectureNum: number) => {
+    setSelectedLecture(lectureNum);
+    // Auto-set time from schedule
+    const periodTime = lecturePeriods[lectureNum - 1]?.startTime;
+    if (periodTime) {
+      setLectureTime(periodTime);
+    }
   };
 
   const changeDate = (days: number) => {
@@ -163,7 +224,9 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     date.setDate(date.getDate() + days);
     setSelectedDate(formatDateForInput(date));
     setSelectedLecture(1);
-    setLectureTime(getCurrentTime());
+    // Reset time from schedule
+    const periodTime = lecturePeriods[0]?.startTime;
+    setLectureTime(periodTime || getCurrentTime());
   };
 
   const getStatusColor = (status?: Attendance["status"]) => {
@@ -178,6 +241,14 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     const excused = Object.values(attendance).filter(s => s === "excused").length;
     const unmarked = total - present - absent - late - excused;
     return { total, present, absent, late, excused, unmarked };
+  };
+
+  const getLectureTimeDisplay = (lectureNum: number): string => {
+    const period = lecturePeriods[lectureNum - 1];
+    if (period) {
+      return `${period.startTime} - ${period.endTime}`;
+    }
+    return "";
   };
 
   if (loading) {
@@ -204,6 +275,34 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
 
   return (
     <div className="space-y-6">
+      {/* Setup Alert */}
+      {!hasSubjects && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium">Tip:</span> Go to the "Schedule" tab to add subjects and configure lecture timings for this class.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Subject Selection (if multiple subjects) */}
+      {hasSubjects && (
+        <div className="flex flex-wrap gap-2">
+          {subjects.map((subject) => (
+            <Button
+              key={subject.id}
+              variant={selectedSubject?.id === subject.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedSubject(subject)}
+              className={selectedSubject?.id === subject.id ? "" : subject.color}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              {subject.name}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {/* Date & Lecture Navigation */}
       <div className="flex flex-col gap-4">
         {/* Date Row */}
@@ -236,16 +335,23 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
               <Select
                 value={String(selectedLecture)}
-                onValueChange={(v) => setSelectedLecture(Number(v))}
+                onValueChange={(v) => handleLectureChange(Number(v))}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Lecture" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LECTURE_OPTIONS.map((num) => (
+                  {Array.from({ length: lectureCount }, (_, i) => i + 1).map((num) => (
                     <SelectItem key={num} value={String(num)}>
-                      Lecture {num}
-                      {existingLectures.includes(num) && " ✓"}
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <span>Lecture {num}</span>
+                        {existingLectures.includes(num) && <span className="text-chart-1">✓</span>}
+                        {getLectureTimeDisplay(num) && (
+                          <span className="text-xs text-muted-foreground">
+                            {getLectureTimeDisplay(num)}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -273,7 +379,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
                     variant={l === selectedLecture ? "default" : "outline"}
                     size="sm"
                     className="h-6 w-6 p-0 text-xs"
-                    onClick={() => setSelectedLecture(l)}
+                    onClick={() => handleLectureChange(l)}
                   >
                     {l}
                   </Button>
@@ -327,11 +433,19 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
       {/* Attendance Table */}
       <Card className="border-none shadow-lg">
         <CardHeader>
-          <CardTitle className="text-card-foreground flex items-center gap-2">
+          <CardTitle className="text-card-foreground flex flex-col sm:flex-row sm:items-center gap-2">
             <span>{formatDateDisplay(selectedDate)}</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              • Lecture {selectedLecture} {lectureTime && `at ${lectureTime}`}
-            </span>
+            <div className="flex items-center gap-2 text-sm font-normal">
+              <Badge variant="secondary">
+                Lecture {selectedLecture}
+                {getLectureTimeDisplay(selectedLecture) && ` (${getLectureTimeDisplay(selectedLecture)})`}
+              </Badge>
+              {selectedSubject && (
+                <Badge className={selectedSubject.color}>
+                  {selectedSubject.name}
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
