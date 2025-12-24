@@ -20,12 +20,12 @@ interface ClassScheduleProps {
 }
 
 const SUBJECT_COLORS = [
-  { name: "Purple", value: "bg-primary/20 text-primary" },
-  { name: "Blue", value: "bg-chart-1/20 text-chart-1" },
-  { name: "Green", value: "bg-chart-2/20 text-chart-2" },
-  { name: "Orange", value: "bg-chart-3/20 text-chart-3" },
-  { name: "Pink", value: "bg-chart-4/20 text-chart-4" },
-  { name: "Cyan", value: "bg-chart-5/20 text-chart-5" },
+  { name: "Purple", value: "bg-[hsl(258,89%,66%)]/20 text-[hsl(258,89%,66%)]", preview: "bg-[hsl(258,89%,66%)]" },
+  { name: "Blue", value: "bg-[hsl(210,100%,50%)]/20 text-[hsl(210,100%,60%)]", preview: "bg-[hsl(210,100%,50%)]" },
+  { name: "Green", value: "bg-[hsl(142,70%,45%)]/20 text-[hsl(142,70%,45%)]", preview: "bg-[hsl(142,70%,45%)]" },
+  { name: "Orange", value: "bg-[hsl(25,100%,50%)]/20 text-[hsl(25,100%,50%)]", preview: "bg-[hsl(25,100%,50%)]" },
+  { name: "Pink", value: "bg-[hsl(330,80%,60%)]/20 text-[hsl(330,80%,60%)]", preview: "bg-[hsl(330,80%,60%)]" },
+  { name: "Cyan", value: "bg-[hsl(185,80%,45%)]/20 text-[hsl(185,80%,50%)]", preview: "bg-[hsl(185,80%,45%)]" },
 ];
 
 export function ClassSchedule({ classId }: ClassScheduleProps) {
@@ -248,7 +248,7 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
                 {SUBJECT_COLORS.map((color) => (
                   <SelectItem key={color.value} value={color.value}>
                     <div className="flex items-center gap-2">
-                      <div className={`h-3 w-3 rounded-full ${color.value.split(" ")[0]}`} />
+                      <div className={`h-3 w-3 rounded-full ${color.preview}`} />
                       {color.name}
                     </div>
                   </SelectItem>
