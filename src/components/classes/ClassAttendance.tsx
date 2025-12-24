@@ -76,11 +76,12 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
-  // Derived values
+  // Derived values from schedule
   const subjects = classData?.subjects || [];
   const hasSubjects = subjects.length > 0;
   const lecturePeriods = classData?.lecturePeriods || [];
-  const lectureCount = classData?.lectureCount || 8;
+  const lectureCount = lecturePeriods.length; // Only use configured lectures from schedule
+  const hasSchedule = lectureCount > 0;
 
   useEffect(() => {
     loadInitialData();
@@ -265,6 +266,22 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
         <CardContent className="flex flex-col items-center justify-center py-12">
           <p className="text-lg text-muted-foreground">
             Add students first to track attendance.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasSchedule) {
+    return (
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground text-center">
+            No lecture schedule configured.
+          </p>
+          <p className="text-sm text-muted-foreground text-center mt-2">
+            Go to the "Schedule" tab to add subjects and lecture timings first.
           </p>
         </CardContent>
       </Card>

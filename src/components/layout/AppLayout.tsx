@@ -1,5 +1,6 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
+import { Footer } from "./Footer";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { GraduationCap, Bell, Search, User, AlertTriangle, Clock, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -165,12 +166,13 @@ export function AppLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 rounded-2xl glass overflow-auto animate-fade-in-up" style={{
+          <main className="flex-1 p-6 pb-20 rounded-2xl glass overflow-auto animate-fade-in-up" style={{
           animationDelay: '0.1s'
         }}>
             <Outlet />
           </main>
         </div>
+        <Footer />
       </div>
 
       {/* Search Command Dialog */}
