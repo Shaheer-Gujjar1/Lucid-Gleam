@@ -18,14 +18,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -35,8 +27,6 @@ import {
 } from "@/components/ui/command";
 import { useState, useEffect } from "react";
 import { getAllClasses, getAllStudents } from "@/lib/db";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 export function AppLayout() {
   const navigate = useNavigate();
@@ -134,49 +124,15 @@ export function AppLayout() {
                   </PopoverContent>
                 </Popover>
 
-                {/* Settings Sheet */}
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Settings</SheetTitle>
-                      <SheetDescription>Configure your application preferences</SheetDescription>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-6">
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-foreground">Appearance</h4>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="dark-mode" className="text-sm text-muted-foreground">Dark Mode</Label>
-                          <Switch id="dark-mode" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="compact" className="text-sm text-muted-foreground">Compact View</Label>
-                          <Switch id="compact" />
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-foreground">Notifications</h4>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="email-notif" className="text-sm text-muted-foreground">Email Notifications</Label>
-                          <Switch id="email-notif" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="reminder" className="text-sm text-muted-foreground">Assignment Reminders</Label>
-                          <Switch id="reminder" defaultChecked />
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <h4 className="text-sm font-medium text-foreground">Data</h4>
-                        <Button variant="outline" size="sm" className="w-full">Export All Data</Button>
-                        <Button variant="outline" size="sm" className="w-full">Import Data</Button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                {/* Settings Button - navigates to settings page */}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate("/settings")}
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
 
                 {/* Profile Dropdown */}
                 <div className="hidden sm:flex items-center gap-3 ml-2 pl-4 border-l border-border">
@@ -199,7 +155,7 @@ export function AppLayout() {
                         <User className="mr-2 h-4 w-4" />
                         Profile
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer">
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/settings")}>
                         <Settings className="mr-2 h-4 w-4" />
                         Settings
                       </DropdownMenuItem>
