@@ -325,37 +325,37 @@ export default function FilesPage() {
                 />
               </div>
             </div>
-            <Select value={filterInstitute} onValueChange={setFilterInstitute}>
+            <Select value={filterInstitute || "__all__"} onValueChange={(v) => setFilterInstitute(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-[180px]">
                 <Building2 className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Institute" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Institutes</SelectItem>
+                <SelectItem value="__all__">All Institutes</SelectItem>
                 {institutes.map((inst) => (
                   <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterClass} onValueChange={setFilterClass}>
+            <Select value={filterClass || "__all__"} onValueChange={(v) => setFilterClass(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-[180px]">
                 <BookOpen className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Class" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Classes</SelectItem>
+                <SelectItem value="__all__">All Classes</SelectItem>
                 {classes.map((cls) => (
                   <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterStudent} onValueChange={setFilterStudent}>
+            <Select value={filterStudent || "__all__"} onValueChange={(v) => setFilterStudent(v === "__all__" ? "" : v)}>
               <SelectTrigger className="w-[180px]">
                 <Users className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Student" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Students</SelectItem>
+                <SelectItem value="__all__">All Students</SelectItem>
                 {students.map((student) => (
                   <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>
                 ))}
@@ -490,37 +490,37 @@ export default function FilesPage() {
             <div className="space-y-2">
               <Label>Tags (optional)</Label>
               <div className="grid gap-2">
-                <Select value={selectedInstitute} onValueChange={setSelectedInstitute}>
+                <Select value={selectedInstitute || "__none__"} onValueChange={(v) => setSelectedInstitute(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <Building2 className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Institute" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {institutes.map((inst) => (
                       <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass || "__none__"} onValueChange={(v) => setSelectedClass(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <BookOpen className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <Select value={selectedStudent || "__none__"} onValueChange={(v) => setSelectedStudent(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <Users className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Student" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {students.map((student) => (
                       <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>
                     ))}
@@ -558,37 +558,37 @@ export default function FilesPage() {
             <div className="space-y-2">
               <Label>Tags</Label>
               <div className="grid gap-2">
-                <Select value={selectedInstitute} onValueChange={setSelectedInstitute}>
+                <Select value={selectedInstitute || "__none__"} onValueChange={(v) => setSelectedInstitute(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <Building2 className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Institute" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {institutes.map((inst) => (
                       <SelectItem key={inst.id} value={inst.id}>{inst.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass || "__none__"} onValueChange={(v) => setSelectedClass(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <BookOpen className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>{cls.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                <Select value={selectedStudent || "__none__"} onValueChange={(v) => setSelectedStudent(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <Users className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Select Student" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {students.map((student) => (
                       <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>
                     ))}
