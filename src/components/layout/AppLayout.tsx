@@ -24,6 +24,7 @@ import { differenceInDays, isPast, isToday, isTomorrow, format } from "date-fns"
 
 interface NotificationItem {
   id: string;
+  classId: string;
   title: string;
   description: string;
   time: string;
@@ -78,6 +79,7 @@ export function AppLayout() {
           
           return {
             id: task.id,
+            classId: task.classId,
             title: task.title,
             description: cls ? `${task.type} - ${cls.name}` : task.type,
             time,
@@ -170,7 +172,16 @@ export function AppLayout() {
                       ) : (
                         <div className="space-y-2 max-h-80 overflow-y-auto">
                           {notifications.map((notification) => (
-                            <div key={notification.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors">
+                            <div 
+                              key={notification.id} 
+                              className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                              onClick={() => {
+                                const cls = classes.find(c => c.id === notification.classId);
+                                if (cls) {
+                                  navigate(`/institute/${cls.instituteId}/class/${cls.id}?tab=tasks&taskId=${notification.id}`);
+                                }
+                              }}
+                            >
                               {getNotificationIcon(notification.type)}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-foreground truncate">{notification.title}</p>
@@ -186,7 +197,7 @@ export function AppLayout() {
                           ))}
                         </div>
                       )}
-                      <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/settings")}>
+                      <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/reminders")}>
                         View all reminders
                       </Button>
                     </div>
