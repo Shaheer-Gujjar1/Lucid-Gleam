@@ -166,13 +166,13 @@ export function AppLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 pb-20 rounded-2xl glass overflow-auto animate-fade-in-up" style={{
+          <main className="flex-1 p-6 pb-24 rounded-2xl glass overflow-auto animate-fade-in-up" style={{
           animationDelay: '0.1s'
         }}>
             <Outlet />
           </main>
+          <Footer />
         </div>
-        <Footer />
       </div>
 
       {/* Search Command Dialog */}
