@@ -96,7 +96,7 @@ export function AppSidebar() {
                       : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                   )}
                 >
-                  <NavLink to="/" className="group-data-[collapsible=icon]:justify-center">
+                  <NavLink to="/" className="group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:-ml-0.5">
                     <Home className="h-4 w-4 shrink-0" />
                     <span>Home</span>
                   </NavLink>
@@ -114,7 +114,7 @@ export function AppSidebar() {
                       : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                   )}
                 >
-                  <NavLink to="/files" className="group-data-[collapsible=icon]:justify-center">
+                  <NavLink to="/files" className="group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:-ml-0.5">
                     <FolderOpen className="h-4 w-4 shrink-0" />
                     <span>Files</span>
                   </NavLink>
@@ -132,7 +132,7 @@ export function AppSidebar() {
                       : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                   )}
                 >
-                  <NavLink to="/settings" className="group-data-[collapsible=icon]:justify-center">
+                  <NavLink to="/settings" className="group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:-ml-0.5">
                     <Settings className="h-4 w-4 shrink-0" />
                     <span>Settings</span>
                   </NavLink>
@@ -166,7 +166,7 @@ export function AppSidebar() {
                           : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                       )}
                     >
-                      <NavLink to={`/institute/${institute.id}`} className="group-data-[collapsible=icon]:justify-center">
+                      <NavLink to={`/institute/${institute.id}`} className="group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:-ml-0.5">
                         <Building2 className="h-4 w-4 shrink-0" />
                         <span className="truncate">{institute.name}</span>
                       </NavLink>
