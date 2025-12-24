@@ -87,6 +87,18 @@ export interface Attendance {
   createdAt: Date;
 }
 
+export type BehaviourRating = 'excellent' | 'good' | 'satisfactory' | 'needs_improvement' | 'poor';
+
+export interface Behaviour {
+  id: string;
+  classId: string;
+  studentId: string;
+  date: string; // YYYY-MM-DD format
+  rating: BehaviourRating;
+  comments?: string;
+  createdAt: Date;
+}
+
 export interface TeacherFile {
   id: string;
   name: string;
@@ -143,13 +155,18 @@ interface TeacherDeskDB extends DBSchema {
     value: TeacherFile;
     indexes: { 'by-class': string; 'by-institute': string; 'by-student': string };
   };
+  behaviour: {
+    key: string;
+    value: Behaviour;
+    indexes: { 'by-class': string; 'by-student': string; 'by-date': string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 6, {
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 7, {
       upgrade(db, oldVersion) {
         // Create institutes store
         if (!db.objectStoreNames.contains('institutes')) {
@@ -208,7 +225,7 @@ export function getDB() {
           taskFilesStore.createIndex('by-task', 'taskId');
         }
 
-        // Handle attendance store (new in version 4)
+        // Handle attendance store
         if (!db.objectStoreNames.contains('attendance')) {
           const attendanceStore = db.createObjectStore('attendance', { keyPath: 'id' });
           attendanceStore.createIndex('by-class', 'classId');
@@ -216,12 +233,20 @@ export function getDB() {
           attendanceStore.createIndex('by-date', 'date');
         }
 
-        // Handle teacherFiles store (new in version 4, updated in version 6)
+        // Handle teacherFiles store
         if (!db.objectStoreNames.contains('teacherFiles')) {
           const teacherFilesStore = db.createObjectStore('teacherFiles', { keyPath: 'id' });
           teacherFilesStore.createIndex('by-class', 'classId');
           teacherFilesStore.createIndex('by-institute', 'instituteId');
           teacherFilesStore.createIndex('by-student', 'studentId');
+        }
+
+        // Handle behaviour store (new in version 7)
+        if (!db.objectStoreNames.contains('behaviour')) {
+          const behaviourStore = db.createObjectStore('behaviour', { keyPath: 'id' });
+          behaviourStore.createIndex('by-class', 'classId');
+          behaviourStore.createIndex('by-student', 'studentId');
+          behaviourStore.createIndex('by-date', 'date');
         }
       },
     });
@@ -626,5 +651,60 @@ export async function deleteTeacherFilesByClass(classId: string): Promise<void> 
   const files = await getTeacherFilesByClass(classId);
   for (const file of files) {
     await db.delete('teacherFiles', file.id);
+  }
+}
+
+// Behaviour operations
+export async function getBehaviourByClass(classId: string): Promise<Behaviour[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('behaviour', 'by-class', classId);
+}
+
+export async function getBehaviourByDate(classId: string, date: string): Promise<Behaviour[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex('behaviour', 'by-class', classId);
+  return all.filter(b => b.date === date);
+}
+
+export async function getBehaviourByStudent(studentId: string): Promise<Behaviour[]> {
+  const db = await getDB();
+  return db.getAllFromIndex('behaviour', 'by-student', studentId);
+}
+
+export async function upsertBehaviour(
+  classId: string,
+  studentId: string,
+  date: string,
+  rating: BehaviourRating,
+  comments?: string
+): Promise<Behaviour> {
+  const db = await getDB();
+  const existing = (await db.getAllFromIndex('behaviour', 'by-class', classId))
+    .find(b => b.studentId === studentId && b.date === date);
+  
+  if (existing) {
+    const updated = { ...existing, rating, comments };
+    await db.put('behaviour', updated);
+    return updated;
+  }
+  
+  const newRecord: Behaviour = {
+    id: crypto.randomUUID(),
+    classId,
+    studentId,
+    date,
+    rating,
+    comments,
+    createdAt: new Date(),
+  };
+  await db.add('behaviour', newRecord);
+  return newRecord;
+}
+
+export async function deleteBehaviourByClass(classId: string): Promise<void> {
+  const db = await getDB();
+  const records = await getBehaviourByClass(classId);
+  for (const record of records) {
+    await db.delete('behaviour', record.id);
   }
 }

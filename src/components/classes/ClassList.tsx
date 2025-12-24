@@ -49,7 +49,6 @@ export function ClassList({ institute, onBack, onSelectClass }: ClassListProps) 
 
   const [formData, setFormData] = useState({
     name: "",
-    subject: "",
   });
 
   useEffect(() => {
@@ -82,20 +81,18 @@ export function ClassList({ institute, onBack, onSelectClass }: ClassListProps) 
         await updateClass({
           ...editingClass,
           name: formData.name,
-          subject: formData.subject,
         });
         toast.success("Class updated successfully");
       } else {
         await addClass({
           instituteId: institute.id,
           name: formData.name,
-          subject: formData.subject,
         });
         toast.success("Class added successfully");
       }
       setIsDialogOpen(false);
       setEditingClass(null);
-      setFormData({ name: "", subject: "" });
+      setFormData({ name: "" });
       loadClasses();
     } catch (error) {
       toast.error("An error occurred");
@@ -107,7 +104,6 @@ export function ClassList({ institute, onBack, onSelectClass }: ClassListProps) 
     setEditingClass(classData);
     setFormData({
       name: classData.name,
-      subject: classData.subject || "",
     });
     setIsDialogOpen(true);
   };
@@ -122,8 +118,7 @@ export function ClassList({ institute, onBack, onSelectClass }: ClassListProps) 
   };
 
   const filteredClasses = classes.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.subject?.toLowerCase().includes(searchTerm.toLowerCase())
+    c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -150,7 +145,7 @@ export function ClassList({ institute, onBack, onSelectClass }: ClassListProps) 
             setIsDialogOpen(open);
             if (!open) {
               setEditingClass(null);
-              setFormData({ name: "", subject: "" });
+              setFormData({ name: "" });
             }
           }}
         >
@@ -177,18 +172,9 @@ export function ClassList({ institute, onBack, onSelectClass }: ClassListProps) 
                   }
                   placeholder="e.g., Grade 10-A, Section B"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject (optional)</Label>
-                <Input
-                  id="subject"
-                  value={formData.subject}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, subject: e.target.value }))
-                  }
-                  placeholder="e.g., Mathematics, Physics"
-                />
+                <p className="text-xs text-muted-foreground">
+                  You can add subjects in the Schedule tab after creating the class.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2">
