@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3 } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2 } from "lucide-react";
 import { Class, Institute } from "@/lib/db";
 import { ClassDashboard } from "./ClassDashboard";
 import { ClassStudents } from "./ClassStudents";
 import { ClassTasks } from "./ClassTasks";
 import { ClassAttendance } from "./ClassAttendance";
+import { ClassSchedule } from "./ClassSchedule";
 import { GradeReports } from "./GradeReports";
 import { StudentPerformance } from "./StudentPerformance";
 import { SeatingChart } from "./SeatingChart";
@@ -74,6 +75,9 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
               <TabsTrigger value="seating" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Grid3X3 className="h-4 w-4" /><span className="hidden sm:inline">Seating</span>
               </TabsTrigger>
+              <TabsTrigger value="schedule" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Settings2 className="h-4 w-4" /><span className="hidden sm:inline">Schedule</span>
+              </TabsTrigger>
             </TabsList>
           </div>
           <ScrollBar orientation="horizontal" />
@@ -86,6 +90,7 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
         <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} /></TabsContent>
         <TabsContent value="attendance" className="mt-6"><ClassAttendance classId={classData.id} /></TabsContent>
         <TabsContent value="seating" className="mt-6"><SeatingChart classId={classData.id} /></TabsContent>
+        <TabsContent value="schedule" className="mt-6"><ClassSchedule classId={classData.id} /></TabsContent>
       </Tabs>
     </div>
   );
