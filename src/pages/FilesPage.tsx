@@ -172,14 +172,18 @@ export default function FilesPage() {
       return;
     }
 
-    // Accept most common file types
-    const isAllowed = ALLOWED_TYPES.includes(selectedFile.type) || 
-      selectedFile.type.startsWith("image/") ||
-      selectedFile.name.endsWith(".zip") ||
-      selectedFile.name.endsWith(".7z") ||
-      selectedFile.name.endsWith(".rar");
+    // Check by extension since browsers often report wrong MIME types
+    const allowedExtensions = [
+      '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff',
+      '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+      '.txt', '.csv', '.rtf', '.zip', '.7z', '.rar', '.gz', '.tar',
+      '.json', '.xml'
+    ];
+    const fileName = selectedFile.name.toLowerCase();
+    const hasAllowedExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+    const isAllowedType = ALLOWED_TYPES.includes(selectedFile.type) || selectedFile.type.startsWith("image/");
       
-    if (!isAllowed) {
+    if (!hasAllowedExtension && !isAllowedType) {
       toast.error("Unsupported file type.");
       return;
     }
