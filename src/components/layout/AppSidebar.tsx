@@ -76,7 +76,7 @@ export function AppSidebar() {
   }, [location.pathname]);
 
   return (
-    <Sidebar collapsible="icon" className="border border-border/30 bg-card/60 backdrop-blur-xl rounded-2xl shadow-lg shadow-primary/5 h-[calc(100vh-2rem)]">
+    <Sidebar collapsible="icon" variant="floating" className="border border-border/30 bg-sidebar/70 backdrop-blur-xl rounded-2xl shadow-xl">
       <SidebarContent className="pt-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3">
@@ -89,7 +89,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/"}
                   tooltip="Home"
-                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                 >
                   <NavLink to="/">
                     <Home className="h-4 w-4" />
@@ -102,7 +102,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/files"}
                   tooltip="Files"
-                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                 >
                   <NavLink to="/files">
                     <FolderOpen className="h-4 w-4" />
@@ -115,7 +115,7 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/settings"}
                   tooltip="Settings"
-                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                 >
                   <NavLink to="/settings">
                     <Settings className="h-4 w-4" />
@@ -144,7 +144,7 @@ export function AppSidebar() {
                       asChild
                       isActive={isActiveInstitute(institute.id) && !classId}
                       tooltip={institute.name}
-                      className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                      className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                     >
                       <NavLink to={`/institute/${institute.id}`}>
                         <Building2 className="h-4 w-4" />
@@ -176,7 +176,7 @@ export function AppSidebar() {
                           <SidebarMenuSubButton
                             asChild
                             isActive={isActiveClass(cls.id)}
-                            className="rounded-md transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                            className="rounded-md transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                           >
                             <NavLink to={`/institute/${institute.id}/class/${cls.id}`}>
                               <BookOpen className="h-3.5 w-3.5" />

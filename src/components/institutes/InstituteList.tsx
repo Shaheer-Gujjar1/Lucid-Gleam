@@ -213,7 +213,7 @@ export function InstituteList({ onSelectInstitute }: InstituteListProps) {
       </div>
 
       {filteredInstitutes.length === 0 ? (
-        <Card className="border-dashed border-2">
+        <Card className="border-dashed border-2 border-border/30 bg-card/60 backdrop-blur-xl">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg text-muted-foreground">
@@ -228,7 +228,7 @@ export function InstituteList({ onSelectInstitute }: InstituteListProps) {
           {filteredInstitutes.map((institute) => (
             <Card
               key={institute.id}
-              className="group cursor-pointer border-none shadow-lg transition-all hover:shadow-xl hover:scale-[1.02]"
+              className="group cursor-pointer border border-border/30 bg-card/60 backdrop-blur-xl shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] hover:bg-card/80"
               onClick={() => onSelectInstitute(institute)}
             >
               <CardContent className="p-6">
