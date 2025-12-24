@@ -441,7 +441,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept={ALLOWED_TYPES.join(",")}
+                  accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain"
                   onChange={handleFileSelect}
                   className="hidden"
                   id="task-file-upload"
