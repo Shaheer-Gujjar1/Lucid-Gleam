@@ -9,6 +9,7 @@ import InstitutePage from "./pages/InstitutePage";
 import ClassPage from "./pages/ClassPage";
 import SettingsPage from "./pages/SettingsPage";
 import FilesPage from "./pages/FilesPage";
+import RemindersPage from "./pages/RemindersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/institute/:instituteId/class/:classId" element={<ClassPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/files" element={<FilesPage />} />
+            <Route path="/reminders" element={<RemindersPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
