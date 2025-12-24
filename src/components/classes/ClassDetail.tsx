@@ -51,7 +51,7 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <ScrollArea className="w-full">
-          <div className="bg-card rounded-xl p-1.5 shadow-sm border border-border/50">
+          <div className="bg-card/60 backdrop-blur-xl rounded-xl p-1.5 shadow-lg border border-border/30">
             <TabsList className="flex w-max gap-1 bg-transparent p-0">
               <TabsTrigger value="dashboard" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <LayoutDashboard className="h-4 w-4" /><span className="hidden sm:inline">Overview</span>
