@@ -205,8 +205,8 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
                   </div>
                 ) : (
                   <Badge
-                    variant="secondary"
-                    className={`text-sm py-1.5 px-3 ${subject.color || ""}`}
+                    variant="outline"
+                    className={`text-sm py-1.5 px-3 border-transparent ${subject.color || ""}`}
                   >
                     {subject.name}
                     <button
