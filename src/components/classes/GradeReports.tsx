@@ -215,127 +215,128 @@ export function GradeReports({ classId }: GradeReportsProps) {
                 </Select>
               </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-none shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Class Average</CardTitle>
-            <Target className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{stats.avg}%</div>
-          </CardContent>
-        </Card>
+              <div className="grid gap-4 md:grid-cols-4">
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Class Average</CardTitle>
+                    <Target className="h-5 w-5 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{stats.avg}%</div>
+                  </CardContent>
+                </Card>
 
-        <Card className="border-none shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Highest Score</CardTitle>
-            <TrendingUp className="h-5 w-5 text-chart-1" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{stats.highest}%</div>
-          </CardContent>
-        </Card>
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Highest Score</CardTitle>
+                    <TrendingUp className="h-5 w-5 text-chart-1" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{stats.highest}%</div>
+                  </CardContent>
+                </Card>
 
-        <Card className="border-none shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Lowest Score</CardTitle>
-            <TrendingDown className="h-5 w-5 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{stats.lowest}%</div>
-          </CardContent>
-        </Card>
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Lowest Score</CardTitle>
+                    <TrendingDown className="h-5 w-5 text-destructive" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{stats.lowest}%</div>
+                  </CardContent>
+                </Card>
 
-        <Card className="border-none shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pass Rate</CardTitle>
-            <Award className="h-5 w-5 text-chart-2" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{stats.passing}%</div>
-          </CardContent>
-        </Card>
-      </div>
+                <Card className="border-none shadow-lg">
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">Pass Rate</CardTitle>
+                    <Award className="h-5 w-5 text-chart-2" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-card-foreground">{stats.passing}%</div>
+                  </CardContent>
+                </Card>
+              </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Student Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={getStudentPerformance().slice(0, 10)} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
-                <YAxis dataKey="name" type="category" width={80} stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))", 
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
-                  }} 
-                />
-                <Bar dataKey="average" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card className="border-none shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-card-foreground">Student Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={getStudentPerformance().slice(0, 10)} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis type="number" domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
+                        <YAxis dataKey="name" type="category" width={80} stroke="hsl(var(--muted-foreground))" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px"
+                          }} 
+                        />
+                        <Bar dataKey="average" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Grade Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={getGradeDistribution()}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                >
-                  {getGradeDistribution().map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))", 
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
-                  }} 
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                <Card className="border-none shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-card-foreground">Grade Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={getGradeDistribution()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={5}
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: ${value}`}
+                        >
+                          {getGradeDistribution().map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px"
+                          }} 
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
 
-        <Card className="border-none shadow-lg lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Performance Trend by Task</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={getTaskTrends()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "hsl(var(--card))", 
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px"
-                  }} 
-                />
-                <Line type="monotone" dataKey="average" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: "hsl(var(--primary))" }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+                <Card className="border-none shadow-lg lg:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-card-foreground">Performance Trend by Task</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={getTaskTrends()}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                        <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: "hsl(var(--card))", 
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px"
+                          }} 
+                        />
+                        <Line type="monotone" dataKey="average" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: "hsl(var(--primary))" }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
         </TabsContent>
