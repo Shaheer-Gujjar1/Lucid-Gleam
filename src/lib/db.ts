@@ -69,12 +69,16 @@ export interface Attendance {
 
 export interface TeacherFile {
   id: string;
-  classId: string;
   name: string;
   type: string;
   size: number;
   data: Blob;
   description?: string;
+  // Optional tagging
+  instituteId?: string;
+  classId?: string;
+  studentId?: string;
+  tags?: string[];
   createdAt: Date;
 }
 
@@ -117,7 +121,7 @@ interface TeacherDeskDB extends DBSchema {
   teacherFiles: {
     key: string;
     value: TeacherFile;
-    indexes: { 'by-class': string };
+    indexes: { 'by-class': string; 'by-institute': string; 'by-student': string };
   };
 }
 
@@ -125,7 +129,7 @@ let dbPromise: Promise<IDBPDatabase<TeacherDeskDB>> | null = null;
 
 export function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 5, {
+    dbPromise = openDB<TeacherDeskDB>('teacherdesk-db', 6, {
       upgrade(db, oldVersion) {
         // Create institutes store
         if (!db.objectStoreNames.contains('institutes')) {
@@ -192,10 +196,12 @@ export function getDB() {
           attendanceStore.createIndex('by-date', 'date');
         }
 
-        // Handle teacherFiles store (new in version 4)
+        // Handle teacherFiles store (new in version 4, updated in version 6)
         if (!db.objectStoreNames.contains('teacherFiles')) {
           const teacherFilesStore = db.createObjectStore('teacherFiles', { keyPath: 'id' });
           teacherFilesStore.createIndex('by-class', 'classId');
+          teacherFilesStore.createIndex('by-institute', 'instituteId');
+          teacherFilesStore.createIndex('by-student', 'studentId');
         }
       },
     });
@@ -513,9 +519,27 @@ export async function deleteAttendanceByClass(classId: string): Promise<void> {
 }
 
 // TeacherFile operations
+export async function getAllTeacherFiles(): Promise<TeacherFile[]> {
+  const db = await getDB();
+  return db.getAll('teacherFiles');
+}
+
 export async function getTeacherFilesByClass(classId: string): Promise<TeacherFile[]> {
   const db = await getDB();
-  return db.getAllFromIndex('teacherFiles', 'by-class', classId);
+  const all = await db.getAll('teacherFiles');
+  return all.filter(f => f.classId === classId);
+}
+
+export async function getTeacherFilesByInstitute(instituteId: string): Promise<TeacherFile[]> {
+  const db = await getDB();
+  const all = await db.getAll('teacherFiles');
+  return all.filter(f => f.instituteId === instituteId);
+}
+
+export async function getTeacherFilesByStudent(studentId: string): Promise<TeacherFile[]> {
+  const db = await getDB();
+  const all = await db.getAll('teacherFiles');
+  return all.filter(f => f.studentId === studentId);
 }
 
 export async function addTeacherFile(file: Omit<TeacherFile, 'id' | 'createdAt'>): Promise<TeacherFile> {
@@ -527,6 +551,12 @@ export async function addTeacherFile(file: Omit<TeacherFile, 'id' | 'createdAt'>
   };
   await db.add('teacherFiles', newFile);
   return newFile;
+}
+
+export async function updateTeacherFile(file: TeacherFile): Promise<TeacherFile> {
+  const db = await getDB();
+  await db.put('teacherFiles', file);
+  return file;
 }
 
 export async function deleteTeacherFile(id: string): Promise<void> {
@@ -541,7 +571,7 @@ export async function getTeacherFile(id: string): Promise<TeacherFile | undefine
 
 export async function deleteTeacherFilesByClass(classId: string): Promise<void> {
   const db = await getDB();
-  const files = await db.getAllFromIndex('teacherFiles', 'by-class', classId);
+  const files = await getTeacherFilesByClass(classId);
   for (const file of files) {
     await db.delete('teacherFiles', file.id);
   }

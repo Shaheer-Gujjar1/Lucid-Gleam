@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getTasksByClass, Task } from "@/lib/db";
+import { getTasksByClass, getAllTasks, Task } from "@/lib/db";
 import { Bell, Clock, AlertTriangle, CheckCircle, Calendar } from "lucide-react";
 import { format, differenceInDays, isPast, isToday, isTomorrow } from "date-fns";
 
 interface AssignmentRemindersProps {
-  classId: string;
+  classId?: string;
 }
 
 interface TaskWithStatus extends Task {
@@ -22,7 +22,7 @@ export function AssignmentReminders({ classId }: AssignmentRemindersProps) {
 
   useEffect(() => {
     async function loadTasks() {
-      const data = await getTasksByClass(classId);
+      const data = classId ? await getTasksByClass(classId) : await getAllTasks();
       const now = new Date();
 
       const tasksWithStatus: TaskWithStatus[] = data.map((task) => {

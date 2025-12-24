@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Building2, BookOpen, ChevronRight, Home } from "lucide-react";
-import { NavLink, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Building2, BookOpen, ChevronRight, Home, Settings, FolderOpen } from "lucide-react";
+import { NavLink, useLocation, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   Sidebar,
@@ -27,7 +27,6 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
   const { instituteId, classId } = useParams();
 
   const [institutes, setInstitutes] = useState<Institute[]>([]);
@@ -98,8 +97,32 @@ export function AppSidebar() {
                   </NavLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/files"}
+                  tooltip="Files"
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                >
+                  <NavLink to="/files">
+                    <FolderOpen className="h-4 w-4" />
+                    <span>Files</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname === "/settings"}
+                  tooltip="Settings"
+                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-accent data-[active=true]:bg-primary/10 data-[active=true]:text-primary data-[active=true]:font-medium"
+                >
+                  <NavLink to="/settings">
+                    <Settings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
         </SidebarGroup>
 
         <SidebarGroup className="mt-4">
