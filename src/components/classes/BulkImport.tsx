@@ -84,7 +84,7 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
     reader.onload = (event) => {
       const parsed = parseCSV(event.target?.result as string);
       setImportData(parsed);
-      toast.success(`Parsed ${parsed.length} students from file`);
+      toast.info(`${parsed.length} students ready to import. Click "Import All" to add them to the class.`);
     };
     reader.readAsText(file);
   };
@@ -93,7 +93,7 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
     if (!textInput.trim()) { toast.error("Please enter student names"); return; }
     const parsed = parseText(textInput);
     setImportData(parsed);
-    toast.success(`Parsed ${parsed.length} students`);
+    toast.info(`${parsed.length} students ready to import. Click "Import All" to add them to the class.`);
   };
 
   const handleImport = async () => {
@@ -235,10 +235,13 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
         <Card className="border-none shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-card-foreground">Preview ({importData.length} students)</CardTitle>
+              <div>
+                <CardTitle className="text-card-foreground">Preview ({importData.length} students)</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">Review the list below, then click "Import All" to add students</p>
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={clearData}>Clear</Button>
-                <Button onClick={handleImport} disabled={isImporting || (!initialClassId && !selectedClassId)} className="gap-2">
+                <Button onClick={handleImport} disabled={isImporting || (!initialClassId && !selectedClassId)} className="gap-2 bg-primary hover:bg-primary/90">
                   {isImporting ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />Importing...</> : <><Upload className="h-4 w-4" />Import All</>}
                 </Button>
               </div>
