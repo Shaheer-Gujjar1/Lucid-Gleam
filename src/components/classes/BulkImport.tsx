@@ -144,7 +144,10 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
           {/* Searchable Class Selector */}
           {!initialClassId && (
             <div className="mb-6">
-              <Label className="text-sm font-medium mb-2 block">Select Class *</Label>
+              <Label className="text-sm font-medium mb-2 block text-foreground">Select Class <span className="text-destructive">*</span></Label>
+              {!selectedClassId && importData.length > 0 && (
+                <p className="text-sm text-destructive mb-2">⚠️ You must select a class to enable the Import button</p>
+              )}
               <Popover open={classSearchOpen} onOpenChange={setClassSearchOpen}>
                 <PopoverTrigger asChild>
                   <Button
@@ -200,7 +203,7 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
                 </PopoverContent>
               </Popover>
               {classes.length === 0 && (
-                <p className="text-sm text-muted-foreground mt-2">No classes available. Create a class first.</p>
+                <p className="text-sm text-destructive mt-2 font-medium">⚠️ No classes available. Please create a class first before importing students.</p>
               )}
             </div>
           )}
@@ -241,7 +244,12 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={clearData}>Clear</Button>
-                <Button onClick={handleImport} disabled={isImporting || (!initialClassId && !selectedClassId)} className="gap-2 bg-primary hover:bg-primary/90">
+                <Button 
+                  onClick={handleImport} 
+                  disabled={isImporting || (!initialClassId && !selectedClassId)} 
+                  className="gap-2 bg-primary hover:bg-primary/90"
+                  title={!initialClassId && !selectedClassId ? "Please select a class first" : ""}
+                >
                   {isImporting ? <><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />Importing...</> : <><Upload className="h-4 w-4" />Import All</>}
                 </Button>
               </div>
