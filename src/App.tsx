@@ -7,6 +7,8 @@ import { AppLayout } from "./components/layout/AppLayout";
 import InstitutesPage from "./pages/InstitutesPage";
 import InstitutePage from "./pages/InstitutePage";
 import ClassPage from "./pages/ClassPage";
+import SettingsPage from "./pages/SettingsPage";
+import FilesPage from "./pages/FilesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ const App = () => (
             <Route path="/" element={<InstitutesPage />} />
             <Route path="/institute/:instituteId" element={<InstitutePage />} />
             <Route path="/institute/:instituteId/class/:classId" element={<ClassPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/files" element={<FilesPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
