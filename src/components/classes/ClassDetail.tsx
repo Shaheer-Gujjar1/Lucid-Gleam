@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2, Heart } from "lucide-react";
@@ -22,8 +23,18 @@ interface ClassDetailProps {
 }
 
 export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const urlStudentId = searchParams.get("studentId");
+  
+  const [activeTab, setActiveTab] = useState(urlTab || "dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (urlTab) {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab]);
 
   const handleDataChange = () => {
     setRefreshKey((prev) => prev + 1);
@@ -91,7 +102,7 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
         <TabsContent value="students" className="mt-6"><ClassStudents classId={classData.id} onDataChange={handleDataChange} /></TabsContent>
         <TabsContent value="tasks" className="mt-6"><ClassTasks classId={classData.id} onDataChange={handleDataChange} /></TabsContent>
         <TabsContent value="grades" className="mt-6"><GradeReports classId={classData.id} /></TabsContent>
-        <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} /></TabsContent>
+        <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} initialStudentId={urlStudentId || undefined} /></TabsContent>
         <TabsContent value="attendance" className="mt-6"><ClassAttendance classId={classData.id} /></TabsContent>
         <TabsContent value="behaviour" className="mt-6"><ClassBehaviour classId={classData.id} /></TabsContent>
         <TabsContent value="seating" className="mt-6"><SeatingChart classId={classData.id} /></TabsContent>
