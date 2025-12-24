@@ -10,10 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
-  
+
   // Settings state with localStorage persistence
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
@@ -60,27 +59,21 @@ export default function SettingsPage() {
   useEffect(() => {
     localStorage.setItem("assignmentReminders", String(assignmentReminders));
   }, [assignmentReminders]);
-
   useEffect(() => {
     localStorage.setItem("quizReminders", String(quizReminders));
   }, [quizReminders]);
-
   useEffect(() => {
     localStorage.setItem("presentationReminders", String(presentationReminders));
   }, [presentationReminders]);
-
   const handleDarkModeToggle = (checked: boolean) => {
     setDarkMode(checked);
     toast.success(checked ? "Dark mode enabled" : "Light mode enabled");
   };
-
   const handleCompactToggle = (checked: boolean) => {
     setCompactView(checked);
     toast.success(checked ? "Compact view enabled" : "Standard view enabled");
   };
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex items-center gap-3">
         <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground shadow-lg">
           <SettingsIcon className="h-6 w-6" />
@@ -113,7 +106,7 @@ export default function SettingsPage() {
               </TabsTrigger>
               <TabsTrigger value="backup" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Database className="h-4 w-4" />
-                <span>Backup & Restore</span>
+                <span>Data Management</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -136,22 +129,14 @@ export default function SettingsPage() {
                     <Label htmlFor="dark-mode" className="text-sm font-medium">Dark Mode</Label>
                     <p className="text-xs text-muted-foreground">Switch between light and dark themes</p>
                   </div>
-                  <Switch 
-                    id="dark-mode" 
-                    checked={darkMode} 
-                    onCheckedChange={handleDarkModeToggle}
-                  />
+                  <Switch id="dark-mode" checked={darkMode} onCheckedChange={handleDarkModeToggle} />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="compact" className="text-sm font-medium">Compact View</Label>
                     <p className="text-xs text-muted-foreground">Reduce spacing for more content</p>
                   </div>
-                  <Switch 
-                    id="compact" 
-                    checked={compactView} 
-                    onCheckedChange={handleCompactToggle}
-                  />
+                  <Switch id="compact" checked={compactView} onCheckedChange={handleCompactToggle} />
                 </div>
               </CardContent>
             </Card>
@@ -169,33 +154,21 @@ export default function SettingsPage() {
                     <Label htmlFor="assignment-reminder" className="text-sm font-medium">Assignment Reminders</Label>
                     <p className="text-xs text-muted-foreground">Get notified about upcoming assignments</p>
                   </div>
-                  <Switch 
-                    id="assignment-reminder" 
-                    checked={assignmentReminders}
-                    onCheckedChange={setAssignmentReminders}
-                  />
+                  <Switch id="assignment-reminder" checked={assignmentReminders} onCheckedChange={setAssignmentReminders} />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="quiz-reminder" className="text-sm font-medium">Quiz Reminders</Label>
                     <p className="text-xs text-muted-foreground">Get notified about upcoming quizzes</p>
                   </div>
-                  <Switch 
-                    id="quiz-reminder" 
-                    checked={quizReminders}
-                    onCheckedChange={setQuizReminders}
-                  />
+                  <Switch id="quiz-reminder" checked={quizReminders} onCheckedChange={setQuizReminders} />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
                     <Label htmlFor="presentation-reminder" className="text-sm font-medium">Presentation Reminders</Label>
                     <p className="text-xs text-muted-foreground">Get notified about upcoming presentations</p>
                   </div>
-                  <Switch 
-                    id="presentation-reminder" 
-                    checked={presentationReminders}
-                    onCheckedChange={setPresentationReminders}
-                  />
+                  <Switch id="presentation-reminder" checked={presentationReminders} onCheckedChange={setPresentationReminders} />
                 </div>
               </CardContent>
             </Card>
@@ -218,6 +191,5 @@ export default function SettingsPage() {
           <BackupRestore />
         </TabsContent>
       </Tabs>
-    </div>
-  );
+    </div>;
 }
