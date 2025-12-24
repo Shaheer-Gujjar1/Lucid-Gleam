@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -38,17 +39,23 @@ import {
   Check,
   User,
   Search,
+  ClipboardList,
+  Paperclip,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   Task,
   Student,
   TaskFile,
+  Grade,
   getFilesByTask,
   addTaskFile,
   deleteTaskFile,
   updateTaskFile,
   getStudentsByClass,
+  getGradesByTask,
+  upsertGrade,
+  deleteGrade,
 } from "@/lib/db";
 
 interface TaskDetailProps {
@@ -89,6 +96,7 @@ function formatFileSize(bytes: number): string {
 export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailProps) {
   const [files, setFiles] = useState<TaskFile[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
@@ -97,6 +105,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [editScore, setEditScore] = useState("");
+  const [activeTab, setActiveTab] = useState<"grading" | "files">("grading");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -105,13 +114,15 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
 
   async function loadData() {
     setLoading(true);
-    const [taskFiles, classStudents] = await Promise.all([
+    const [taskFiles, classStudents, taskGrades] = await Promise.all([
       getFilesByTask(task.id),
       getStudentsByClass(classId),
+      getGradesByTask(task.id),
     ]);
     
     setFiles(taskFiles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     setStudents(classStudents.sort((a, b) => a.name.localeCompare(b.name)));
+    setGrades(taskGrades);
     setLoading(false);
   }
 
@@ -241,9 +252,44 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     return student?.name;
   };
 
+  const getStudentGrade = (studentId: string) => {
+    return grades.find(g => g.studentId === studentId);
+  };
+
+  const handleManualGrade = async (studentId: string, scoreValue: string) => {
+    const score = scoreValue ? parseFloat(scoreValue) : undefined;
+    if (scoreValue && (score === undefined || isNaN(score) || score < 0 || score > task.maxScore)) {
+      toast.error(`Score must be between 0 and ${task.maxScore}`);
+      return;
+    }
+
+    setSaving(prev => ({ ...prev, [studentId]: true }));
+
+    try {
+      if (score !== undefined) {
+        await upsertGrade(studentId, task.id, score);
+        toast.success("Grade saved");
+      } else {
+        const existingGrade = grades.find(g => g.studentId === studentId);
+        if (existingGrade) {
+          await deleteGrade(existingGrade.id);
+          toast.success("Grade removed");
+        }
+      }
+      loadData();
+      onDataChange?.();
+    } catch (error) {
+      toast.error("Failed to save grade");
+    } finally {
+      setSaving(prev => ({ ...prev, [studentId]: false }));
+    }
+  };
+
   const filteredStudents = students.filter(s =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const gradedCount = students.filter(s => getStudentGrade(s.id)).length;
 
   if (loading) {
     return (
@@ -276,156 +322,81 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
         </div>
       </div>
 
-      {/* Files Section */}
-      <Card className="border-none shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-card-foreground">
-            Student Submissions & Reference Files
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={ALLOWED_TYPES.join(",")}
-              onChange={handleFileSelect}
-              className="hidden"
-              id="task-file-upload"
-            />
-            <Button
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="gap-2"
-            >
-              <Upload className="h-4 w-4" />
-              {uploading ? "Uploading..." : "Upload Files"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {files.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <FileText className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-muted-foreground">No files uploaded yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Upload student answer sheets, question papers, rubrics, etc.
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "grading" | "files")} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="grading" className="gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Grading ({gradedCount}/{students.length})
+          </TabsTrigger>
+          <TabsTrigger value="files" className="gap-2">
+            <Paperclip className="h-4 w-4" />
+            Files ({files.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Manual Grading Tab */}
+        <TabsContent value="grading">
+          <Card className="border-none shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-card-foreground">
+                Grade Students
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Enter scores directly for each student. Files are optional.
               </p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {files.map((file) => {
-                const FileIcon = getFileIcon(file.type);
-                const studentName = getStudentName(file.studentId);
-                return (
-                  <div
-                    key={file.id}
-                    className="flex flex-col rounded-lg bg-background border border-border overflow-hidden"
-                  >
-                    <div className="flex items-center gap-3 p-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                        <FileIcon className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate" title={file.name}>
-                          {file.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFileSize(file.size)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Student Tag & Score */}
-                    <div className="px-3 pb-2 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Popover 
-                          open={editingFileId === file.id} 
-                          onOpenChange={(open) => {
-                            setEditingFileId(open ? file.id : null);
-                            if (!open) setSearchQuery("");
-                          }}
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 gap-1.5 text-xs flex-1 justify-start"
-                            >
-                              <User className="h-3.5 w-3.5" />
-                              {studentName || "Tag student"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-64 p-0 bg-popover border border-border shadow-lg z-50" align="start">
-                            <div className="p-2 border-b border-border">
-                              <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                  placeholder="Search students..."
-                                  value={searchQuery}
-                                  onChange={(e) => setSearchQuery(e.target.value)}
-                                  className="pl-8 h-8"
-                                />
-                              </div>
-                            </div>
-                            <ScrollArea className="max-h-48">
-                              <div className="p-1">
-                                {file.studentId && (
-                                  <button
-                                    onClick={() => handleSelectStudent(file.id, null)}
-                                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted text-destructive"
-                                  >
-                                    Remove tag
-                                  </button>
-                                )}
-                                {filteredStudents.length === 0 ? (
-                                  <p className="px-3 py-2 text-sm text-muted-foreground">
-                                    No students found
-                                  </p>
-                                ) : (
-                                  filteredStudents.map((student) => (
-                                    <button
-                                      key={student.id}
-                                      onClick={() => handleSelectStudent(file.id, student.id)}
-                                      className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted flex items-center gap-2"
-                                    >
-                                      {student.photo ? (
-                                        <img
-                                          src={student.photo}
-                                          alt=""
-                                          className="h-6 w-6 rounded-full object-cover"
-                                        />
-                                      ) : (
-                                        <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground">
-                                          {student.name.charAt(0)}
-                                        </div>
-                                      )}
-                                      <span>{student.name}</span>
-                                      {student.id === file.studentId && (
-                                        <Check className="h-4 w-4 ml-auto text-primary" />
-                                      )}
-                                    </button>
-                                  ))
-                                )}
-                              </div>
-                            </ScrollArea>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      
-                      {/* Score input - only show if student is tagged */}
-                      {file.studentId && (
+            </CardHeader>
+            <CardContent>
+              {students.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <User className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No students in this class</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add students to start grading
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {students.map((student) => {
+                    const grade = getStudentGrade(student.id);
+                    const studentFiles = files.filter(f => f.studentId === student.id);
+                    return (
+                      <div
+                        key={student.id}
+                        className="flex items-center gap-4 p-3 rounded-lg bg-background border border-border"
+                      >
+                        {student.photo ? (
+                          <img
+                            src={student.photo}
+                            alt=""
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-sm text-primary-foreground font-medium">
+                            {student.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-foreground truncate">{student.name}</p>
+                          {studentFiles.length > 0 && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Paperclip className="h-3 w-3" />
+                              {studentFiles.length} file(s) attached
+                            </p>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
                             min="0"
                             max={task.maxScore}
-                            defaultValue={file.score?.toString() || ""}
+                            defaultValue={grade?.score?.toString() || ""}
                             placeholder="Score"
-                            className="h-7 text-xs w-20"
+                            className="h-9 text-sm w-24"
+                            disabled={saving[student.id]}
                             onBlur={(e) => {
-                              if (e.target.value !== (file.score?.toString() || "")) {
-                                handleSaveScore(file, e.target.value);
+                              const currentScore = grade?.score?.toString() || "";
+                              if (e.target.value !== currentScore) {
+                                handleManualGrade(student.id, e.target.value);
                               }
                             }}
                             onKeyDown={(e) => {
@@ -434,51 +405,206 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                               }
                             }}
                           />
-                          <span className="text-xs text-muted-foreground">/ {task.maxScore}</span>
-                          {file.score !== undefined && (
-                            <Badge variant="secondary" className="text-xs ml-auto">
-                              {file.score}/{task.maxScore}
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">/ {task.maxScore}</span>
+                          {grade && (
+                            <Badge variant="secondary" className="ml-2">
+                              {Math.round((grade.score / task.maxScore) * 100)}%
                             </Badge>
                           )}
+                          {saving[student.id] && (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                    {/* Actions */}
-                    <div className="flex gap-1 border-t border-border p-2 bg-muted/30">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 h-8 text-xs"
-                        onClick={() => handlePreview(file)}
+        {/* Files Tab */}
+        <TabsContent value="files">
+          <Card className="border-none shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-card-foreground">
+                  Files & Submissions
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Upload answer sheets, rubrics, or reference materials (optional)
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept={ALLOWED_TYPES.join(",")}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="task-file-upload"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  {uploading ? "Uploading..." : "Upload Files"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {files.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No files uploaded yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload student answer sheets, question papers, rubrics, etc.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {files.map((file) => {
+                    const FileIcon = getFileIcon(file.type);
+                    const studentName = getStudentName(file.studentId);
+                    return (
+                      <div
+                        key={file.id}
+                        className="flex flex-col rounded-lg bg-background border border-border overflow-hidden"
                       >
-                        <Eye className="h-3.5 w-3.5 mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleDownload(file)}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteFileId(file.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                        <div className="flex items-center gap-3 p-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                            <FileIcon className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate" title={file.name}>
+                              {file.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Student Tag */}
+                        <div className="px-3 pb-2 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Popover 
+                              open={editingFileId === file.id} 
+                              onOpenChange={(open) => {
+                                setEditingFileId(open ? file.id : null);
+                                if (!open) setSearchQuery("");
+                              }}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 gap-1.5 text-xs flex-1 justify-start"
+                                >
+                                  <User className="h-3.5 w-3.5" />
+                                  {studentName || "Tag student"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 p-0 bg-popover border border-border shadow-lg z-50" align="start">
+                                <div className="p-2 border-b border-border">
+                                  <div className="relative">
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      placeholder="Search students..."
+                                      value={searchQuery}
+                                      onChange={(e) => setSearchQuery(e.target.value)}
+                                      className="pl-8 h-8"
+                                    />
+                                  </div>
+                                </div>
+                                <ScrollArea className="max-h-48">
+                                  <div className="p-1">
+                                    {file.studentId && (
+                                      <button
+                                        onClick={() => handleSelectStudent(file.id, null)}
+                                        className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted text-destructive"
+                                      >
+                                        Remove tag
+                                      </button>
+                                    )}
+                                    {filteredStudents.length === 0 ? (
+                                      <p className="px-3 py-2 text-sm text-muted-foreground">
+                                        No students found
+                                      </p>
+                                    ) : (
+                                      filteredStudents.map((student) => (
+                                        <button
+                                          key={student.id}
+                                          onClick={() => handleSelectStudent(file.id, student.id)}
+                                          className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-muted flex items-center gap-2"
+                                        >
+                                          {student.photo ? (
+                                            <img
+                                              src={student.photo}
+                                              alt=""
+                                              className="h-6 w-6 rounded-full object-cover"
+                                            />
+                                          ) : (
+                                            <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center text-xs text-primary-foreground">
+                                              {student.name.charAt(0)}
+                                            </div>
+                                          )}
+                                          <span>{student.name}</span>
+                                          {student.id === file.studentId && (
+                                            <Check className="h-4 w-4 ml-auto text-primary" />
+                                          )}
+                                        </button>
+                                      ))
+                                    )}
+                                  </div>
+                                </ScrollArea>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-1 border-t border-border p-2 bg-muted/30">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex-1 h-8 text-xs"
+                            onClick={() => handlePreview(file)}
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDownload(file)}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteFileId(file.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* File Preview Dialog - Scrollable */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
