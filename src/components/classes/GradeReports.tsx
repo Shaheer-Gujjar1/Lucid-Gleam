@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { getStudentsByClass, getTasksByClass, getAllGrades, Student, Task, Grade } from "@/lib/db";
-import { TrendingUp, TrendingDown, Target, Award } from "lucide-react";
+import { getStudentsByClass, getTasksByClass, getAllGrades, getAttendanceByClass, Student, Task, Grade, Attendance } from "@/lib/db";
+import { TrendingUp, TrendingDown, Target, Award, Calendar, UserCheck } from "lucide-react";
+import { startOfDay, subDays, subMonths, subYears, isAfter, parseISO } from "date-fns";
 
 interface GradeReportsProps {
   classId: string;
@@ -13,18 +15,33 @@ export function GradeReports({ classId }: GradeReportsProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<string>("all");
+  const [attendancePeriod, setAttendancePeriod] = useState<string>("this_month");
+  const [reportTab, setReportTab] = useState<string>("grades");
+
+  const ATTENDANCE_PERIODS = [
+    { value: "today", label: "Today" },
+    { value: "this_week", label: "This Week" },
+    { value: "this_month", label: "This Month" },
+    { value: "last_3_months", label: "Last 3 Months" },
+    { value: "last_6_months", label: "Last 6 Months" },
+    { value: "last_year", label: "Last Year" },
+    { value: "all_time", label: "From Start" },
+  ];
 
   useEffect(() => {
     async function loadData() {
-      const [s, t, allGrades] = await Promise.all([
+      const [s, t, allGrades, allAttendance] = await Promise.all([
         getStudentsByClass(classId),
         getTasksByClass(classId),
         getAllGrades(),
+        getAttendanceByClass(classId),
       ]);
       setStudents(s);
       setTasks(t);
+      setAttendance(allAttendance);
       
       const studentIds = new Set(s.map((st) => st.id));
       const taskIds = new Set(t.map((tk) => tk.id));
@@ -36,6 +53,47 @@ export function GradeReports({ classId }: GradeReportsProps) {
     }
     loadData();
   }, [classId]);
+
+  const getFilteredAttendance = () => {
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (attendancePeriod) {
+      case "today": startDate = startOfDay(now); break;
+      case "this_week": startDate = subDays(now, 7); break;
+      case "this_month": startDate = subMonths(now, 1); break;
+      case "last_3_months": startDate = subMonths(now, 3); break;
+      case "last_6_months": startDate = subMonths(now, 6); break;
+      case "last_year": startDate = subYears(now, 1); break;
+      default: return attendance;
+    }
+    
+    return attendance.filter(a => isAfter(parseISO(a.date), startDate));
+  };
+
+  const getAttendanceStats = () => {
+    const filtered = getFilteredAttendance();
+    const total = filtered.length;
+    if (total === 0) return { present: 0, absent: 0, late: 0, rate: 0 };
+    
+    const present = filtered.filter(a => a.status === "present").length;
+    const absent = filtered.filter(a => a.status === "absent").length;
+    const late = filtered.filter(a => a.status === "late").length;
+    const rate = Math.round((present / total) * 100);
+    
+    return { present, absent, late, rate, total };
+  };
+
+  const getStudentAttendanceData = () => {
+    const filtered = getFilteredAttendance();
+    return students.map(student => {
+      const studentAtt = filtered.filter(a => a.studentId === student.id);
+      const total = studentAtt.length;
+      const present = studentAtt.filter(a => a.status === "present").length;
+      const rate = total > 0 ? Math.round((present / total) * 100) : 0;
+      return { name: student.name.split(" ")[0], rate, present, total };
+    }).sort((a, b) => b.rate - a.rate);
+  };
 
   const getFilteredGrades = () => {
     if (selectedTask === "all") return grades;
@@ -106,6 +164,7 @@ export function GradeReports({ classId }: GradeReportsProps) {
   };
 
   const stats = calculateStats();
+  const attStats = getAttendanceStats();
   const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
 
   if (loading) {
@@ -116,34 +175,45 @@ export function GradeReports({ classId }: GradeReportsProps) {
     );
   }
 
-  if (grades.length === 0) {
-    return (
-      <Card className="border-dashed border-2">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="text-lg text-muted-foreground">No grades yet. Start grading tasks to see reports!</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground">Grade Analytics</h2>
-        <Select value={selectedTask} onValueChange={setSelectedTask}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by task" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Tasks</SelectItem>
-            {tasks.map((task) => (
-              <SelectItem key={task.id} value={task.id}>
-                {task.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Tabs value={reportTab} onValueChange={setReportTab}>
+        <TabsList>
+          <TabsTrigger value="grades" className="gap-2">
+            <Award className="h-4 w-4" />
+            Grades
+          </TabsTrigger>
+          <TabsTrigger value="attendance" className="gap-2">
+            <Calendar className="h-4 w-4" />
+            Attendance
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="grades" className="mt-6">
+          {grades.length === 0 ? (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <p className="text-lg text-muted-foreground">No grades yet. Start grading tasks to see reports!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">Grade Analytics</h2>
+                <Select value={selectedTask} onValueChange={setSelectedTask}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filter by task" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tasks</SelectItem>
+                    {tasks.map((task) => (
+                      <SelectItem key={task.id} value={task.id}>
+                        {task.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-none shadow-lg">
@@ -266,7 +336,91 @@ export function GradeReports({ classId }: GradeReportsProps) {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-      </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="attendance" className="mt-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-foreground">Attendance Analytics</h2>
+            <Select value={attendancePeriod} onValueChange={setAttendancePeriod}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ATTENDANCE_PERIODS.map((period) => (
+                  <SelectItem key={period.value} value={period.value}>
+                    {period.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card className="border-none shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Attendance Rate</CardTitle>
+                <UserCheck className="h-5 w-5 text-chart-1" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-card-foreground">{attStats.rate}%</div>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Present</CardTitle>
+                <Target className="h-5 w-5 text-chart-2" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-card-foreground">{attStats.present}</div>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Absent</CardTitle>
+                <TrendingDown className="h-5 w-5 text-destructive" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-card-foreground">{attStats.absent}</div>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-lg">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Late</CardTitle>
+                <TrendingUp className="h-5 w-5 text-chart-3" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-card-foreground">{attStats.late}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="border-none shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-card-foreground">Student Attendance Rate</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={getStudentAttendanceData().slice(0, 10)} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis dataKey="name" type="category" width={80} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--card))", 
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px"
+                    }} 
+                    formatter={(value: number) => [`${value}%`, "Attendance"]}
+                  />
+                  <Bar dataKey="rate" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Clock, BookOpen, Save, GripVertical } from "lucide-react";
+import { Plus, Trash2, Clock, BookOpen, Save, Pencil, X } from "lucide-react";
 import { toast } from "sonner";
 import { Class, ClassSubject, LecturePeriod, getClass, updateClass } from "@/lib/db";
 
@@ -28,22 +28,15 @@ const SUBJECT_COLORS = [
   { name: "Cyan", value: "bg-chart-5/20 text-chart-5" },
 ];
 
-const DEFAULT_PERIODS: LecturePeriod[] = [
-  { number: 1, startTime: "09:00", endTime: "09:45" },
-  { number: 2, startTime: "09:50", endTime: "10:35" },
-  { number: 3, startTime: "10:40", endTime: "11:25" },
-  { number: 4, startTime: "11:30", endTime: "12:15" },
-  { number: 5, startTime: "13:00", endTime: "13:45" },
-  { number: 6, startTime: "13:50", endTime: "14:35" },
-];
-
 export function ClassSchedule({ classId }: ClassScheduleProps) {
   const [classData, setClassData] = useState<Class | null>(null);
   const [subjects, setSubjects] = useState<ClassSubject[]>([]);
-  const [lectureCount, setLectureCount] = useState<number>(6);
-  const [periods, setPeriods] = useState<LecturePeriod[]>(DEFAULT_PERIODS);
+  const [lectureCount, setLectureCount] = useState<number>(0);
+  const [periods, setPeriods] = useState<LecturePeriod[]>([]);
   const [newSubjectName, setNewSubjectName] = useState("");
   const [newSubjectColor, setNewSubjectColor] = useState(SUBJECT_COLORS[0].value);
+  const [editingSubject, setEditingSubject] = useState<string | null>(null);
+  const [editSubjectName, setEditSubjectName] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -56,8 +49,8 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
     if (data) {
       setClassData(data);
       setSubjects(data.subjects || []);
-      setLectureCount(data.lectureCount || 6);
-      setPeriods(data.lecturePeriods || DEFAULT_PERIODS.slice(0, data.lectureCount || 6));
+      setLectureCount(data.lectureCount || 0);
+      setPeriods(data.lecturePeriods || []);
     }
     setLoading(false);
   }
@@ -76,34 +69,68 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
     
     setSubjects([...subjects, newSubject]);
     setNewSubjectName("");
-    toast.success("Subject added");
+    toast.success("Subject added - remember to save!");
   };
 
   const removeSubject = (id: string) => {
     setSubjects(subjects.filter(s => s.id !== id));
-    toast.success("Subject removed");
+    toast.success("Subject removed - remember to save!");
   };
 
-  const handleLectureCountChange = (count: number) => {
-    setLectureCount(count);
-    
-    // Adjust periods array
-    if (count > periods.length) {
-      const newPeriods = [...periods];
-      for (let i = periods.length + 1; i <= count; i++) {
-        const lastPeriod = newPeriods[newPeriods.length - 1];
-        const startHour = parseInt(lastPeriod?.endTime?.split(":")[0] || "14");
-        const startMin = parseInt(lastPeriod?.endTime?.split(":")[1] || "00") + 5;
-        newPeriods.push({
-          number: i,
-          startTime: `${String(startHour).padStart(2, "0")}:${String(startMin % 60).padStart(2, "0")}`,
-          endTime: `${String(startHour + (startMin >= 60 ? 1 : 0)).padStart(2, "0")}:${String((startMin + 45) % 60).padStart(2, "0")}`,
-        });
-      }
-      setPeriods(newPeriods);
-    } else {
-      setPeriods(periods.slice(0, count));
+  const startEditSubject = (subject: ClassSubject) => {
+    setEditingSubject(subject.id);
+    setEditSubjectName(subject.name);
+  };
+
+  const saveEditSubject = (id: string) => {
+    if (!editSubjectName.trim()) {
+      toast.error("Subject name cannot be empty");
+      return;
     }
+    setSubjects(subjects.map(s => 
+      s.id === id ? { ...s, name: editSubjectName.trim() } : s
+    ));
+    setEditingSubject(null);
+    setEditSubjectName("");
+    toast.success("Subject updated - remember to save!");
+  };
+
+  const addLecture = () => {
+    const newLectureNum = periods.length + 1;
+    const lastPeriod = periods[periods.length - 1];
+    
+    let startTime = "09:00";
+    let endTime = "09:45";
+    
+    if (lastPeriod) {
+      // Calculate next period based on last one
+      const [lastEndHour, lastEndMin] = lastPeriod.endTime.split(":").map(Number);
+      const startHour = lastEndMin >= 55 ? lastEndHour + 1 : lastEndHour;
+      const startMin = (lastEndMin + 5) % 60;
+      startTime = `${String(startHour).padStart(2, "0")}:${String(startMin).padStart(2, "0")}`;
+      
+      const endHour = startMin >= 15 ? startHour + 1 : startHour;
+      const endMin = (startMin + 45) % 60;
+      endTime = `${String(endHour).padStart(2, "0")}:${String(endMin).padStart(2, "0")}`;
+    }
+    
+    setPeriods([...periods, {
+      number: newLectureNum,
+      startTime,
+      endTime,
+    }]);
+    setLectureCount(newLectureNum);
+    toast.success("Lecture added - remember to save!");
+  };
+
+  const removeLecture = (index: number) => {
+    const newPeriods = periods.filter((_, i) => i !== index).map((p, i) => ({
+      ...p,
+      number: i + 1,
+    }));
+    setPeriods(newPeriods);
+    setLectureCount(newPeriods.length);
+    toast.success("Lecture removed - remember to save!");
   };
 
   const updatePeriodTime = (index: number, field: "startTime" | "endTime", value: string) => {
@@ -120,7 +147,7 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
       await updateClass({
         ...classData,
         subjects,
-        lectureCount,
+        lectureCount: periods.length,
         lecturePeriods: periods,
       });
       toast.success("Schedule saved successfully");
@@ -156,22 +183,50 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
           {/* Existing Subjects */}
           <div className="flex flex-wrap gap-2">
             {subjects.map((subject) => (
-              <Badge
-                key={subject.id}
-                variant="secondary"
-                className={`text-sm py-1.5 px-3 ${subject.color || ""}`}
-              >
-                {subject.name}
-                <button
-                  onClick={() => removeSubject(subject.id)}
-                  className="ml-2 hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </Badge>
+              <div key={subject.id} className="flex items-center gap-1">
+                {editingSubject === subject.id ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={editSubjectName}
+                      onChange={(e) => setEditSubjectName(e.target.value)}
+                      className="h-8 w-32"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEditSubject(subject.id);
+                        if (e.key === "Escape") setEditingSubject(null);
+                      }}
+                    />
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => saveEditSubject(subject.id)}>
+                      <Save className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingSubject(null)}>
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Badge
+                    variant="secondary"
+                    className={`text-sm py-1.5 px-3 ${subject.color || ""}`}
+                  >
+                    {subject.name}
+                    <button
+                      onClick={() => startEditSubject(subject)}
+                      className="ml-2 hover:text-primary transition-colors"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => removeSubject(subject.id)}
+                      className="ml-1 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+              </div>
             ))}
             {subjects.length === 0 && (
-              <p className="text-sm text-muted-foreground">No subjects added yet</p>
+              <p className="text-sm text-muted-foreground">No subjects added yet. Add your first subject below.</p>
             )}
           </div>
 
@@ -216,59 +271,56 @@ export function ClassSchedule({ classId }: ClassScheduleProps) {
             Lecture Schedule
           </CardTitle>
           <CardDescription>
-            Configure the number of lectures per day and their timings.
+            Add lecture periods and set their timings. Click the + button to add new lectures.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Lecture Count */}
-          <div className="flex items-center gap-4">
-            <Label className="min-w-fit">Lectures per day:</Label>
-            <Select
-              value={String(lectureCount)}
-              onValueChange={(v) => handleLectureCountChange(Number(v))}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
-                  <SelectItem key={num} value={String(num)}>
-                    {num} lecture{num > 1 ? "s" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           {/* Period Timings */}
           <div className="space-y-3">
-            <Label>Lecture Timings</Label>
-            <div className="grid gap-3">
-              {periods.map((period, index) => (
-                <div
-                  key={period.number}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-                >
-                  <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium min-w-[80px]">Lecture {period.number}</span>
-                  <div className="flex items-center gap-2 flex-1">
-                    <Input
-                      type="time"
-                      value={period.startTime}
-                      onChange={(e) => updatePeriodTime(index, "startTime", e.target.value)}
-                      className="w-[120px]"
-                    />
-                    <span className="text-muted-foreground">to</span>
-                    <Input
-                      type="time"
-                      value={period.endTime}
-                      onChange={(e) => updatePeriodTime(index, "endTime", e.target.value)}
-                      className="w-[120px]"
-                    />
+            {periods.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No lectures added yet. Click the button below to add your first lecture.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                {periods.map((period, index) => (
+                  <div
+                    key={period.number}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                  >
+                    <span className="font-medium min-w-[80px]">Lecture {period.number}</span>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Input
+                        type="time"
+                        value={period.startTime}
+                        onChange={(e) => updatePeriodTime(index, "startTime", e.target.value)}
+                        className="w-[120px]"
+                      />
+                      <span className="text-muted-foreground">to</span>
+                      <Input
+                        type="time"
+                        value={period.endTime}
+                        onChange={(e) => updatePeriodTime(index, "endTime", e.target.value)}
+                        className="w-[120px]"
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => removeLecture(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+            
+            <Button variant="outline" onClick={addLecture} className="w-full gap-2">
+              <Plus className="h-4 w-4" />
+              Add Lecture Period
+            </Button>
           </div>
         </CardContent>
       </Card>

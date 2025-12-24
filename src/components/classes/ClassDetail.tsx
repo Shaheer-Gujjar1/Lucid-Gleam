@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2 } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2, Heart } from "lucide-react";
 import { Class, Institute } from "@/lib/db";
 import { ClassDashboard } from "./ClassDashboard";
 import { ClassStudents } from "./ClassStudents";
 import { ClassTasks } from "./ClassTasks";
 import { ClassAttendance } from "./ClassAttendance";
 import { ClassSchedule } from "./ClassSchedule";
+import { ClassBehaviour } from "./ClassBehaviour";
 import { GradeReports } from "./GradeReports";
 import { StudentPerformance } from "./StudentPerformance";
 import { SeatingChart } from "./SeatingChart";
@@ -72,6 +73,9 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
               <TabsTrigger value="attendance" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Calendar className="h-4 w-4" /><span className="hidden sm:inline">Attendance</span>
               </TabsTrigger>
+              <TabsTrigger value="behaviour" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Heart className="h-4 w-4" /><span className="hidden sm:inline">Behaviour</span>
+              </TabsTrigger>
               <TabsTrigger value="seating" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Grid3X3 className="h-4 w-4" /><span className="hidden sm:inline">Seating</span>
               </TabsTrigger>
@@ -89,6 +93,7 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
         <TabsContent value="grades" className="mt-6"><GradeReports classId={classData.id} /></TabsContent>
         <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} /></TabsContent>
         <TabsContent value="attendance" className="mt-6"><ClassAttendance classId={classData.id} /></TabsContent>
+        <TabsContent value="behaviour" className="mt-6"><ClassBehaviour classId={classData.id} /></TabsContent>
         <TabsContent value="seating" className="mt-6"><SeatingChart classId={classData.id} /></TabsContent>
         <TabsContent value="schedule" className="mt-6"><ClassSchedule classId={classData.id} /></TabsContent>
       </Tabs>
