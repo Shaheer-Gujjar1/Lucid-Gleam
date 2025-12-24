@@ -122,10 +122,12 @@ export function AppLayout() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md shadow-sm">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="fixed left-4 top-4 bottom-4 z-40">
+          <AppSidebar />
+        </div>
+        <div className="flex-1 flex flex-col min-w-0 pl-[calc(var(--sidebar-width)+2rem)] transition-all duration-300">
+          <header className="sticky top-4 z-50 mx-4 rounded-2xl border border-border/30 bg-card/60 backdrop-blur-xl shadow-lg shadow-primary/5">
             <div className="flex h-16 items-center justify-between gap-4 px-6">
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors" />
@@ -206,7 +208,7 @@ export function AppLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 bg-background overflow-auto">
+          <main className="flex-1 p-6 pt-8 bg-transparent overflow-auto">
             <Outlet />
           </main>
         </div>

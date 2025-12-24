@@ -76,7 +76,7 @@ export function AppSidebar() {
   }, [location.pathname]);
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/50">
+    <Sidebar collapsible="icon" className="border border-border/30 bg-card/60 backdrop-blur-xl rounded-2xl shadow-lg shadow-primary/5 h-[calc(100vh-2rem)]">
       <SidebarContent className="pt-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/70 px-3">

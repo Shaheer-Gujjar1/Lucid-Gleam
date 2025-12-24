@@ -60,12 +60,17 @@ import {
   Student,
 } from "@/lib/db";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 const ALLOWED_TYPES = [
+  // Images
   "image/jpeg",
   "image/png",
   "image/gif",
   "image/webp",
+  "image/svg+xml",
+  "image/bmp",
+  "image/tiff",
+  // Documents
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -74,11 +79,25 @@ const ALLOWED_TYPES = [
   "application/vnd.ms-powerpoint",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "text/plain",
+  "text/csv",
+  "application/rtf",
+  // Archives
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/x-7z-compressed",
+  "application/x-rar-compressed",
+  "application/gzip",
+  "application/x-tar",
+  // Other
+  "application/json",
+  "application/xml",
+  "text/xml",
 ];
 
 function getFileIcon(type: string) {
   if (type.startsWith("image/")) return Image;
   if (type === "application/pdf") return FileText;
+  if (type.includes("zip") || type.includes("7z") || type.includes("rar") || type.includes("tar") || type.includes("gzip")) return File;
   return File;
 }
 
@@ -149,11 +168,18 @@ export default function FilesPage() {
     if (!selectedFile) return;
 
     if (selectedFile.size > MAX_FILE_SIZE) {
-      toast.error("File is too large. Max size is 10MB.");
+      toast.error("File is too large. Max size is 50MB.");
       return;
     }
 
-    if (!ALLOWED_TYPES.includes(selectedFile.type) && !selectedFile.type.startsWith("image/")) {
+    // Accept most common file types
+    const isAllowed = ALLOWED_TYPES.includes(selectedFile.type) || 
+      selectedFile.type.startsWith("image/") ||
+      selectedFile.name.endsWith(".zip") ||
+      selectedFile.name.endsWith(".7z") ||
+      selectedFile.name.endsWith(".rar");
+      
+    if (!isAllowed) {
       toast.error("Unsupported file type.");
       return;
     }
@@ -299,7 +325,7 @@ export default function FilesPage() {
         <input
           ref={fileInputRef}
           type="file"
-          accept={ALLOWED_TYPES.join(",")}
+          accept=".jpg,.jpeg,.png,.gif,.webp,.svg,.bmp,.tiff,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.zip,.7z,.rar,.gz,.tar,.json,.xml"
           onChange={handleFileSelect}
           className="hidden"
           id="file-upload"
@@ -311,7 +337,7 @@ export default function FilesPage() {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="border border-border/30 bg-card/60 backdrop-blur-xl shadow-lg shadow-primary/5">
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-[200px]">
@@ -373,7 +399,7 @@ export default function FilesPage() {
 
       {/* Files Grid */}
       {filteredFiles.length === 0 ? (
-        <Card className="border-dashed border-2">
+        <Card className="border-dashed border-2 border-border/30 bg-card/60 backdrop-blur-xl">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg text-muted-foreground">
@@ -390,7 +416,7 @@ export default function FilesPage() {
             const FileIcon = getFileIcon(file.type);
             const tags = getTagLabels(file);
             return (
-              <Card key={file.id} className="group border-none shadow-lg">
+              <Card key={file.id} className="group border border-border/30 bg-card/60 backdrop-blur-xl shadow-lg shadow-primary/5 hover:shadow-xl hover:bg-card/80 transition-all duration-300">
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted shrink-0">
