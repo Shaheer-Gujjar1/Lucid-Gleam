@@ -89,10 +89,13 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/"}
                   tooltip="Home"
-                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
+                  className={cn(
+                    "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
+                    collapsed ? "mx-auto justify-center" : "mx-2"
+                  )}
                 >
                   <NavLink to="/">
-                    <Home className="h-4 w-4" />
+                    <Home className="h-4 w-4 shrink-0" />
                     <span>Home</span>
                   </NavLink>
                 </SidebarMenuButton>
@@ -102,10 +105,13 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/files"}
                   tooltip="Files"
-                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
+                  className={cn(
+                    "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
+                    collapsed ? "mx-auto justify-center" : "mx-2"
+                  )}
                 >
                   <NavLink to="/files">
-                    <FolderOpen className="h-4 w-4" />
+                    <FolderOpen className="h-4 w-4 shrink-0" />
                     <span>Files</span>
                   </NavLink>
                 </SidebarMenuButton>
@@ -115,10 +121,13 @@ export function AppSidebar() {
                   asChild
                   isActive={location.pathname === "/settings"}
                   tooltip="Settings"
-                  className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
+                  className={cn(
+                    "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
+                    collapsed ? "mx-auto justify-center" : "mx-2"
+                  )}
                 >
                   <NavLink to="/settings">
-                    <Settings className="h-4 w-4" />
+                    <Settings className="h-4 w-4 shrink-0" />
                     <span>Settings</span>
                   </NavLink>
                 </SidebarMenuButton>
@@ -144,10 +153,13 @@ export function AppSidebar() {
                       asChild
                       isActive={isActiveInstitute(institute.id) && !classId}
                       tooltip={institute.name}
-                      className="mx-2 rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
+                      className={cn(
+                        "rounded-lg transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
+                        collapsed ? "mx-auto justify-center" : "mx-2"
+                      )}
                     >
                       <NavLink to={`/institute/${institute.id}`}>
-                        <Building2 className="h-4 w-4" />
+                        <Building2 className="h-4 w-4 shrink-0" />
                         <span className="truncate">{institute.name}</span>
                       </NavLink>
                     </SidebarMenuButton>
