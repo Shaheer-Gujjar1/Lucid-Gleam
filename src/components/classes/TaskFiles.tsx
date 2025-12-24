@@ -246,18 +246,18 @@ export function TaskFiles({ taskId, taskTitle, open, onOpenChange }: TaskFilesPr
 
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={() => setPreviewFile(null)}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-4xl h-[90vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <DialogTitle className="flex items-center justify-between">
               <span className="truncate pr-4">{previewFile?.name}</span>
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto px-6 pb-6">
             {previewFile?.type.startsWith("image/") && (
               <img
                 src={URL.createObjectURL(previewFile.data)}
                 alt={previewFile.name}
-                className="max-w-full h-auto rounded-lg"
+                className="max-w-full h-auto rounded-lg object-contain"
               />
             )}
             {previewFile?.type === "application/pdf" && (

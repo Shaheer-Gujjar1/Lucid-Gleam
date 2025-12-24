@@ -612,13 +612,13 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
           <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
             <DialogTitle className="truncate pr-4">{previewFile?.name}</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 px-6 pb-6">
+          <div className="flex-1 overflow-auto px-6 pb-6">
             <div className="min-h-0">
               {previewFile?.type.startsWith("image/") && (
                 <img
                   src={URL.createObjectURL(previewFile.data)}
                   alt={previewFile.name}
-                  className="max-w-full h-auto rounded-lg"
+                  className="max-w-full h-auto rounded-lg object-contain"
                 />
               )}
               {previewFile?.type === "application/pdf" && (
@@ -629,7 +629,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                 />
               )}
             </div>
-          </ScrollArea>
+          </div>
         </DialogContent>
       </Dialog>
 
