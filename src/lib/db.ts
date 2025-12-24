@@ -1,4 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { emitDataChange } from './dataEvents';
 
 export interface Institute {
   id: string;
@@ -228,12 +229,14 @@ export async function addInstitute(institute: Omit<Institute, 'id' | 'createdAt'
     createdAt: new Date(),
   };
   await db.add('institutes', newInstitute);
+  emitDataChange('institute', 'add', newInstitute.id);
   return newInstitute;
 }
 
 export async function updateInstitute(institute: Institute): Promise<Institute> {
   const db = await getDB();
   await db.put('institutes', institute);
+  emitDataChange('institute', 'update', institute.id);
   return institute;
 }
 
@@ -245,6 +248,7 @@ export async function deleteInstitute(id: string): Promise<void> {
     await deleteClass(cls.id);
   }
   await db.delete('institutes', id);
+  emitDataChange('institute', 'delete', id);
 }
 
 // Class operations
@@ -271,12 +275,14 @@ export async function addClass(classData: Omit<Class, 'id' | 'createdAt'>): Prom
     createdAt: new Date(),
   };
   await db.add('classes', newClass);
+  emitDataChange('class', 'add', newClass.id);
   return newClass;
 }
 
 export async function updateClass(classData: Class): Promise<Class> {
   const db = await getDB();
   await db.put('classes', classData);
+  emitDataChange('class', 'update', classData.id);
   return classData;
 }
 
@@ -292,6 +298,7 @@ export async function deleteClass(id: string): Promise<void> {
     await deleteTask(task.id);
   }
   await db.delete('classes', id);
+  emitDataChange('class', 'delete', id);
 }
 
 // Student operations

@@ -22,6 +22,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { getAllInstitutes, getClassesByInstitute, Institute, Class } from "@/lib/db";
+import { subscribeToDataChanges } from "@/lib/dataEvents";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -35,6 +36,15 @@ export function AppSidebar() {
 
   useEffect(() => {
     loadData();
+    
+    // Subscribe to data changes
+    const unsubscribe = subscribeToDataChanges((event) => {
+      if (event.type === 'institute' || event.type === 'class') {
+        loadData();
+      }
+    });
+    
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -70,10 +80,7 @@ export function AppSidebar() {
     return location.pathname.includes(`/class/${id}`);
   };
 
-  // Refresh data when navigating (to catch new institutes/classes)
-  useEffect(() => {
-    loadData();
-  }, [location.pathname]);
+  // No longer needed - using event subscription instead
 
   return (
     <Sidebar collapsible="icon" variant="floating" className="border border-border/30 bg-sidebar/70 backdrop-blur-xl rounded-2xl shadow-xl">
@@ -209,7 +216,7 @@ export function AppSidebar() {
                   </CollapsibleContent>
                 </Collapsible>
               ))}
-              {institutes.length === 0 && (
+              {institutes.length === 0 && !collapsed && (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                   <Building2 className="h-8 w-8 text-muted-foreground/50 mb-2" />
                   <p className="text-sm text-muted-foreground">No institutes yet</p>
