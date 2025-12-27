@@ -250,23 +250,27 @@ export function InstituteList({ onSelectInstitute }: InstituteListProps) {
                     </p>
                   </div>
                 </div>
-                <div className="mt-4 flex justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="mt-4 flex justify-end gap-2 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-9 px-3"
                     onClick={(e) => handleEdit(e, institute)}
                   >
                     <Pencil className="h-4 w-4" />
+                    <span className="ml-1.5 hidden xs:inline">Edit</span>
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
+                    className="h-9 px-3"
                     onClick={(e) => {
                       e.stopPropagation();
                       setDeleteId(institute.id);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
+                    <span className="ml-1.5 hidden xs:inline">Delete</span>
                   </Button>
                 </div>
               </CardContent>
