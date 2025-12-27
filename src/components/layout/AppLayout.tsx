@@ -112,19 +112,19 @@ export function AppLayout() {
   const overdueCount = notifications.filter(n => n.type === "overdue" || n.type === "today").length;
   return <SidebarProvider>
       <FloatingOrbs />
-      <div className="min-h-screen flex w-full p-4">
+      <div className="min-h-screen flex w-full p-2 sm:p-4">
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0 ml-4">
-          <header className="sticky top-0 z-50 rounded-2xl glass-strong glow-primary-sm mb-4 animate-fade-in-up">
-            <div className="flex h-16 items-center justify-between gap-4 px-6">
-              <div className="flex items-center gap-4">
+        <div className="flex-1 flex flex-col min-w-0 ml-2 sm:ml-4">
+          <header className="sticky top-0 z-50 rounded-xl sm:rounded-2xl glass-strong glow-primary-sm mb-2 sm:mb-4 animate-fade-in-up">
+            <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
+              <div className="flex items-center gap-2 sm:gap-4">
                 <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors duration-300" />
-                <Link to="/" className="flex items-center gap-3 group">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-chart-2 text-primary-foreground shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 group-hover:scale-105 transition-all duration-300">
-                    <GraduationCap className="h-5 w-5" />
+                <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
+                  <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-chart-2 text-primary-foreground shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 group-hover:scale-105 transition-all duration-300">
+                    <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                   <div className="hidden sm:block">
-                    <h1 className="text-xl font-bold text-foreground tracking-tight font-display">Lucid Gleam</h1>
+                    <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight font-display">Lucid Gleam</h1>
                     <p className="text-xs text-muted-foreground -mt-0.5">Teacher's Desk</p>
                   </div>
                 </Link>
@@ -137,18 +137,18 @@ export function AppLayout() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 {/* Notifications Popover - Real Data */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary hover:bg-primary/10 relative transition-all duration-300">
-                      <Bell className="h-5 w-5" />
-                      {overdueCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-xs flex items-center justify-center font-medium animate-bounce-subtle shadow-lg shadow-destructive/30">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-primary hover:bg-primary/10 relative transition-all duration-300">
+                      <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                      {overdueCount > 0 && <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-[10px] sm:text-xs flex items-center justify-center font-medium animate-bounce-subtle shadow-lg shadow-destructive/30">
                           {overdueCount}
                         </span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 bg-popover" align="end">
+                  <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 max-w-80 bg-popover" align="end">
                     <div className="space-y-3">
                       <h4 className="font-semibold text-foreground">Upcoming Deadlines</h4>
                       {notifications.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No upcoming deadlines</p> : <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -177,7 +177,7 @@ export function AppLayout() {
               </div>
             </div>
           </header>
-          <main className="flex-1 p-6 pb-24 rounded-2xl glass overflow-auto animate-fade-in-up" style={{
+          <main className="flex-1 p-4 sm:p-6 pb-20 sm:pb-24 rounded-xl sm:rounded-2xl glass overflow-auto animate-fade-in-up" style={{
           animationDelay: '0.1s'
         }}>
             <Outlet />
