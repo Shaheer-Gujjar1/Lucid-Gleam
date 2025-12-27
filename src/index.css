@@ -286,81 +286,276 @@ All colors MUST be HSL.
   }
 }
 
-/* Compact View - Mobile Optimized */
+/* ========================================
+   GLOBAL MOBILE RESPONSIVE STYLES
+   These apply to all mobile devices
+   ======================================== */
+
+/* Mobile base adjustments */
+@media (max-width: 639px) {
+  /* Layout padding */
+  .min-h-screen.flex.w-full.p-4 {
+    padding: 0.5rem;
+  }
+  
+  .flex-1.flex.flex-col.min-w-0.ml-4 {
+    margin-left: 0.5rem;
+  }
+
+  /* Header adjustments */
+  header .flex.h-16 {
+    height: 3.5rem;
+  }
+  
+  header .px-6 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  header .gap-4 {
+    gap: 0.5rem;
+  }
+  
+  header .h-10.w-10 {
+    height: 2rem;
+    width: 2rem;
+  }
+  
+  header .text-xl {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  /* Hide search bar on mobile */
+  header .max-w-md {
+    display: none;
+  }
+
+  /* Main content area */
+  main.flex-1.p-6 {
+    padding: 0.75rem;
+    padding-bottom: 5rem;
+  }
+  
+  main.rounded-2xl {
+    border-radius: 0.75rem;
+  }
+
+  /* Typography scaling */
+  .text-3xl {
+    font-size: 1.5rem;
+    line-height: 2rem;
+  }
+  
+  .text-2xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  
+  .text-xl {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  /* Spacing reductions */
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+    --tw-space-y-reverse: 0;
+    margin-top: calc(1rem * calc(1 - var(--tw-space-y-reverse)));
+    margin-bottom: calc(1rem * var(--tw-space-y-reverse));
+  }
+  
+  .gap-6 {
+    gap: 1rem;
+  }
+  
+  .gap-4 {
+    gap: 0.75rem;
+  }
+  
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  .px-6 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .mb-6 {
+    margin-bottom: 1rem;
+  }
+  
+  .mt-6 {
+    margin-top: 1rem;
+  }
+
+  /* Button sizing */
+  button {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  .h-10:not(header .h-10) {
+    height: 2.25rem;
+  }
+  
+  .h-9 {
+    height: 2rem;
+  }
+
+  /* Grid layouts - stack on mobile */
+  .grid.grid-cols-2:not(.grid-cols-1) {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  .grid.grid-cols-3 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  .grid.grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Flex wrap for headers and toolbars */
+  .flex.items-center.justify-between {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .flex.items-center.gap-4 {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .flex.items-center.gap-2 {
+    flex-wrap: wrap;
+  }
+
+  /* Table adjustments */
+  table th,
+  table td {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  
+  /* Make tables horizontally scrollable */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Tab adjustments */
+  [role="tablist"] {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  [role="tab"] {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Input fields */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    font-size: 16px; /* Prevents zoom on iOS */
+    height: 2.5rem;
+  }
+  
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Card adjustments */
+  .rounded-2xl {
+    border-radius: 0.75rem;
+  }
+  
+  .rounded-xl {
+    border-radius: 0.5rem;
+  }
+
+  /* Footer */
+  footer {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  /* Text wrapping */
+  h1, h2, h3, h4, h5, h6,
+  .truncate {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Badge adjustments */
+  .inline-flex.items-center.rounded-full {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+  }
+}
+
+/* Extra small screens (< 480px) */
+@media (max-width: 479px) {
+  .min-h-screen.flex.w-full.p-4 {
+    padding: 0.25rem;
+  }
+  
+  .flex-1.flex.flex-col.min-w-0.ml-4 {
+    margin-left: 0.25rem;
+  }
+  
+  header .flex.h-16 {
+    height: 3rem;
+  }
+  
+  main.flex-1.p-6 {
+    padding: 0.5rem;
+    padding-bottom: 4rem;
+  }
+  
+  .p-6 {
+    padding: 0.75rem;
+  }
+  
+  .text-3xl {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+  }
+  
+  .text-2xl {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+  
+  .text-xl {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+  
+  /* Stack all grids on very small screens */
+  .grid.grid-cols-2,
+  .grid.grid-cols-3,
+  .grid.grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  table th,
+  table td {
+    padding: 0.375rem 0.25rem;
+    font-size: 0.625rem;
+  }
+}
+
+/* ========================================
+   COMPACT VIEW - Additional density
+   Only applies when compact toggle is on
+   ======================================== */
 .compact {
-  /* Reduce base font size */
   font-size: 14px;
 }
 
-.compact .min-h-screen {
-  padding: 0.25rem;
-}
-
-@media (min-width: 640px) {
-  .compact .min-h-screen {
-    padding: 0.5rem;
-  }
-}
-
-/* Header adjustments */
-.compact header {
-  border-radius: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.compact header > div.h-16,
-.compact header .flex.h-16 {
-  height: 3rem;
-}
-
-.compact header .px-6 {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-}
-
-.compact header .gap-4 {
-  gap: 0.5rem;
-}
-
-.compact header .h-10.w-10 {
-  height: 2rem;
-  width: 2rem;
-}
-
-.compact header .h-5.w-5 {
-  height: 1rem;
-  width: 1rem;
-}
-
-.compact header .text-xl {
-  font-size: 1rem;
-  line-height: 1.5rem;
-}
-
-/* Main content area */
-.compact main {
-  padding: 0.75rem;
-  padding-bottom: 5rem;
-  border-radius: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .compact main {
-    padding: 1rem;
-    padding-bottom: 5rem;
-  }
-}
-
-/* Sidebar adjustments */
-.compact [data-sidebar] {
-  border-radius: 0.75rem;
-}
-
-.compact [data-sidebar="sidebar"] {
-  --sidebar-width: 14rem;
-}
-
-/* Cards and spacing */
 .compact .space-y-6 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
@@ -381,50 +576,12 @@ All colors MUST be HSL.
   gap: 0.5rem;
 }
 
-.compact .p-6,
-.compact .card .p-6 {
+.compact .p-6 {
   padding: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .compact .p-6,
-  .compact .card .p-6 {
-    padding: 1rem;
-  }
 }
 
 .compact .p-4 {
   padding: 0.5rem;
-}
-
-@media (min-width: 640px) {
-  .compact .p-4 {
-    padding: 0.75rem;
-  }
-}
-
-.compact .px-6 {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .compact .px-6 {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-}
-
-.compact .py-4 {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-}
-
-@media (min-width: 640px) {
-  .compact .py-4 {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-  }
 }
 
 .compact .mb-6 {
@@ -443,29 +600,14 @@ All colors MUST be HSL.
   margin-top: 0.5rem;
 }
 
-/* Typography */
 .compact .text-3xl {
   font-size: 1.25rem;
   line-height: 1.75rem;
 }
 
-@media (min-width: 640px) {
-  .compact .text-3xl {
-    font-size: 1.5rem;
-    line-height: 2rem;
-  }
-}
-
 .compact .text-2xl {
   font-size: 1.125rem;
-  line-height: 1.75rem;
-}
-
-@media (min-width: 640px) {
-  .compact .text-2xl {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
-  }
+  line-height: 1.5rem;
 }
 
 .compact .text-xl {
@@ -473,171 +615,37 @@ All colors MUST be HSL.
   line-height: 1.5rem;
 }
 
-@media (min-width: 640px) {
-  .compact .text-xl {
-    font-size: 1.125rem;
-    line-height: 1.75rem;
-  }
-}
-
 .compact .text-lg {
-  font-size: 1rem;
-  line-height: 1.5rem;
-}
-
-/* Buttons */
-.compact button {
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
 
-/* Tables */
-.compact table th,
-.compact table td {
-  padding: 0.375rem 0.5rem;
+.compact button {
   font-size: 0.75rem;
   line-height: 1rem;
 }
 
-@media (min-width: 640px) {
-  .compact table th,
-  .compact table td {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
-}
-
-/* Grid layouts - make responsive for mobile */
-@media (max-width: 639px) {
-  .compact .grid.grid-cols-2,
-  .compact .grid.grid-cols-3,
-  .compact .grid.grid-cols-4 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 640px) and (max-width: 767px) {
-  .compact .grid.grid-cols-3,
-  .compact .grid.grid-cols-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Flex wrap for mobile */
-.compact .flex.items-center.justify-between {
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-/* Dialog/Modal adjustments */
-.compact [role="dialog"] {
-  max-height: 95vh;
-  border-radius: 0.75rem;
-}
-
-.compact [role="dialog"] .p-6 {
-  padding: 0.75rem;
-}
-
-@media (min-width: 640px) {
-  .compact [role="dialog"] .p-6 {
-    padding: 1rem;
-  }
-}
-
-/* Tabs */
-.compact [role="tablist"] {
-  flex-wrap: wrap;
-  gap: 0.25rem;
+.compact table th,
+.compact table td {
+  padding: 0.25rem 0.375rem;
+  font-size: 0.6875rem;
 }
 
 .compact [role="tab"] {
-  font-size: 0.75rem;
-  line-height: 1rem;
+  font-size: 0.6875rem;
   padding: 0.25rem 0.5rem;
 }
 
-@media (min-width: 640px) {
-  .compact [role="tab"] {
-    font-size: 0.875rem;
-    line-height: 1.25rem;
-  }
+.compact [data-sidebar="sidebar"] {
+  --sidebar-width: 14rem;
 }
 
-/* Badge adjustments */
-.compact .inline-flex.items-center.rounded-full {
-  font-size: 0.75rem;
-  line-height: 1rem;
-  padding: 0.125rem 0.375rem;
-}
-
-/* Avatar adjustments */
-.compact .avatar-lg {
-  height: 2.25rem;
-  width: 2.25rem;
-}
-
-/* Input fields */
-.compact input,
-.compact textarea,
-.compact select {
-  font-size: 0.875rem;
-  line-height: 1.25rem;
-  height: 2rem;
-}
-
-@media (min-width: 640px) {
-  .compact input,
-  .compact textarea,
-  .compact select {
-    height: 2.25rem;
-  }
-}
-
-.compact textarea {
-  height: auto;
-  min-height: 4rem;
-}
-
-/* Reduce border radius */
-.compact .rounded-2xl {
-  border-radius: 0.75rem;
-}
-
-/* Hide less important elements on very small screens in compact mode */
-@media (max-width: 480px) {
-  .compact header .hidden.sm\:block {
-    display: none !important;
-  }
-  
-  .compact .max-w-md {
-    display: none !important;
-  }
-  
-  .compact .ml-4 {
-    margin-left: 0.25rem;
-  }
-  
-  .compact .flex-1.flex.flex-col.min-w-0.ml-4 {
-    margin-left: 0.25rem;
-  }
-}
-
-/* Footer adjustments */
 .compact footer {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  font-size: 0.75rem;
-  line-height: 1rem;
-}
-
-/* Card adjustments */
-.compact [class*="Card"],
-.compact .card {
-  border-radius: 0.75rem;
+  padding: 0.25rem;
+  font-size: 0.6875rem;
 }
 
 /* Scrollable content areas */
-.compact .overflow-auto {
+.overflow-auto {
   -webkit-overflow-scrolling: touch;
 }
