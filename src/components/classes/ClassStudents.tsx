@@ -46,6 +46,7 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    rollNumber: "",
     photo: "",
   });
 
@@ -83,6 +84,7 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
           ...editingStudent,
           name: formData.name,
           email: formData.email,
+          rollNumber: formData.rollNumber,
           photo: formData.photo,
         });
         toast.success("Student updated successfully");
@@ -91,13 +93,14 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
           classId,
           name: formData.name,
           email: formData.email,
+          rollNumber: formData.rollNumber,
           photo: formData.photo,
         });
         toast.success("Student added successfully");
       }
       setIsDialogOpen(false);
       setEditingStudent(null);
-      setFormData({ name: "", email: "", photo: "" });
+      setFormData({ name: "", email: "", rollNumber: "", photo: "" });
       loadStudents();
       onDataChange?.();
     } catch (error) {
@@ -110,6 +113,7 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
     setFormData({
       name: student.name,
       email: student.email || "",
+      rollNumber: student.rollNumber || "",
       photo: student.photo || "",
     });
     setIsDialogOpen(true);
@@ -155,7 +159,7 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
             setIsDialogOpen(open);
             if (!open) {
               setEditingStudent(null);
-              setFormData({ name: "", email: "", photo: "" });
+              setFormData({ name: "", email: "", rollNumber: "", photo: "" });
             }
           }}
         >
@@ -226,6 +230,18 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="rollNumber">Roll Number (optional)</Label>
+                <Input
+                  id="rollNumber"
+                  value={formData.rollNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, rollNumber: e.target.value }))
+                  }
+                  placeholder="e.g. 101"
+                />
+              </div>
+
               <div className="flex justify-end gap-2">
                 <Button
                   type="button"
@@ -274,6 +290,11 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
                     <h3 className="font-semibold text-card-foreground truncate">
                       {student.name}
                     </h3>
+                    {student.rollNumber && (
+                      <p className="text-sm text-muted-foreground">
+                        Roll No: {student.rollNumber}
+                      </p>
+                    )}
                     {student.email && (
                       <p className="text-sm text-muted-foreground truncate">
                         {student.email}
