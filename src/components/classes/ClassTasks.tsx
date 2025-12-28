@@ -202,7 +202,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
               className="gap-2"
             >
               <type.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{type.label}</span>
+              <span>{type.label}</span>
             </Button>
           ))}
         </div>
