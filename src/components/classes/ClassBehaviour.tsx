@@ -435,35 +435,35 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-5">
+      <div className="grid gap-2 sm:gap-4 grid-cols-3 sm:grid-cols-5">
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-chart-1">{stats.excellent}</p>
-            <p className="text-xs text-muted-foreground">Excellent</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-chart-1">{stats.excellent}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Excellent</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-chart-2">{stats.good}</p>
-            <p className="text-xs text-muted-foreground">Good</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-chart-2">{stats.good}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Good</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-muted-foreground">{stats.satisfactory}</p>
-            <p className="text-xs text-muted-foreground">Satisfactory</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-muted-foreground">{stats.satisfactory}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Satisfactory</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-chart-3">{stats.needs_improvement}</p>
-            <p className="text-xs text-muted-foreground">Needs Work</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-chart-3">{stats.needs_improvement}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Needs Work</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-destructive">{stats.poor}</p>
-            <p className="text-xs text-muted-foreground">Poor</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-destructive">{stats.poor}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Poor</p>
           </CardContent>
         </Card>
       </div>

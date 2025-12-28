@@ -463,35 +463,35 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 grid-cols-3 sm:grid-cols-5">
+      <div className="grid gap-2 sm:gap-4 grid-cols-3 sm:grid-cols-5">
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.present}</p>
-            <p className="text-xs text-muted-foreground">Present</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.present}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Present</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-destructive">{stats.absent}</p>
-            <p className="text-xs text-muted-foreground">Absent</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-destructive">{stats.absent}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Absent</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.late}</p>
-            <p className="text-xs text-muted-foreground">Late</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.late}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Late</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.excused}</p>
-            <p className="text-xs text-muted-foreground">Excused</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-foreground">{stats.excused}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Excused</p>
           </CardContent>
         </Card>
         <Card className="border-none shadow">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-muted-foreground">{stats.unmarked}</p>
-            <p className="text-xs text-muted-foreground">Unmarked</p>
+          <CardContent className="p-2 sm:p-4 text-center">
+            <p className="text-lg sm:text-2xl font-bold text-muted-foreground">{stats.unmarked}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Unmarked</p>
           </CardContent>
         </Card>
       </div>
