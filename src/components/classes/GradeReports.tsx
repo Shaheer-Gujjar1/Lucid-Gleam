@@ -2,24 +2,29 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-import { getStudentsByClass, getTasksByClass, getAllGrades, getAttendanceByClass, Student, Task, Grade, Attendance } from "@/lib/db";
-import { TrendingUp, TrendingDown, Target, Award, Calendar, UserCheck } from "lucide-react";
-import { startOfDay, subDays, subMonths, subYears, isAfter, parseISO } from "date-fns";
+import { getStudentsByClass, getTasksByClass, getAllGrades, getAttendanceByClass, getClass, Student, Task, Grade, Attendance, Class, ClassSubject } from "@/lib/db";
+import { TrendingUp, TrendingDown, Target, Award, Calendar, UserCheck, BookOpen } from "lucide-react";
+import { startOfDay, subDays, subMonths, subYears, parseISO, isSameDay, isAfter } from "date-fns";
 
 interface GradeReportsProps {
   classId: string;
 }
 
 export function GradeReports({ classId }: GradeReportsProps) {
+  const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [attendancePeriod, setAttendancePeriod] = useState<string>("this_month");
   const [reportTab, setReportTab] = useState<string>("grades");
+
+  const subjects = classData?.subjects || [];
 
   const ATTENDANCE_PERIODS = [
     { value: "today", label: "Today" },
@@ -33,15 +38,17 @@ export function GradeReports({ classId }: GradeReportsProps) {
 
   useEffect(() => {
     async function loadData() {
-      const [s, t, allGrades, allAttendance] = await Promise.all([
+      const [s, t, allGrades, allAttendance, classInfo] = await Promise.all([
         getStudentsByClass(classId),
         getTasksByClass(classId),
         getAllGrades(),
         getAttendanceByClass(classId),
+        getClass(classId),
       ]);
       setStudents(s);
       setTasks(t);
       setAttendance(allAttendance);
+      setClassData(classInfo || null);
       
       const studentIds = new Set(s.map((st) => st.id));
       const taskIds = new Set(t.map((tk) => tk.id));
@@ -65,10 +72,21 @@ export function GradeReports({ classId }: GradeReportsProps) {
       case "last_3_months": startDate = subMonths(now, 3); break;
       case "last_6_months": startDate = subMonths(now, 6); break;
       case "last_year": startDate = subYears(now, 1); break;
-      default: return attendance;
+      default: return filterBySubject(attendance);
     }
     
-    return attendance.filter(a => isAfter(parseISO(a.date), startDate));
+    // Filter by date - use isSameDay OR isAfter to include today's records
+    const dateFiltered = attendance.filter(a => {
+      const recordDate = parseISO(a.date);
+      return isSameDay(recordDate, startDate) || isAfter(recordDate, startDate);
+    });
+    
+    return filterBySubject(dateFiltered);
+  };
+
+  const filterBySubject = (records: Attendance[]) => {
+    if (selectedSubject === "all") return records;
+    return records.filter(a => a.subjectId === selectedSubject);
   };
 
   const getAttendanceStats = () => {
@@ -342,7 +360,32 @@ export function GradeReports({ classId }: GradeReportsProps) {
         </TabsContent>
 
         <TabsContent value="attendance" className="mt-6 space-y-6">
-          <div className="flex items-center justify-between">
+          {/* Subject Filter */}
+          {subjects.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedSubject === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedSubject("all")}
+              >
+                All Subjects
+              </Button>
+              {subjects.map((subject) => (
+                <Button
+                  key={subject.id}
+                  variant={selectedSubject === subject.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedSubject(subject.id)}
+                  className={selectedSubject === subject.id ? "" : subject.color}
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  {subject.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold text-foreground">Attendance Analytics</h2>
             <Select value={attendancePeriod} onValueChange={setAttendancePeriod}>
               <SelectTrigger className="w-48">

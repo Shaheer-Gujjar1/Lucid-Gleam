@@ -209,9 +209,15 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
           )}
 
           <Tabs defaultValue="file" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="file" className="gap-2"><FileSpreadsheet className="h-4 w-4" />CSV File</TabsTrigger>
-              <TabsTrigger value="text" className="gap-2"><Users className="h-4 w-4" />Text List</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 h-auto">
+              <TabsTrigger value="file" className="gap-2 px-3 py-2 text-xs sm:text-sm">
+                <FileSpreadsheet className="h-4 w-4 shrink-0" />
+                <span>CSV File</span>
+              </TabsTrigger>
+              <TabsTrigger value="text" className="gap-2 px-3 py-2 text-xs sm:text-sm">
+                <Users className="h-4 w-4 shrink-0" />
+                <span>Text List</span>
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="file" className="space-y-4 mt-4">
               <div className="flex items-center gap-4">
