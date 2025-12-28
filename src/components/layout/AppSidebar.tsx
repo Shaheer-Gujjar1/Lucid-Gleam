@@ -25,8 +25,14 @@ import { getAllInstitutes, getClassesByInstitute, Institute, Class } from "@/lib
 import { subscribeToDataChanges } from "@/lib/dataEvents";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
   const location = useLocation();
   const { instituteId, classId } = useParams();
 
@@ -103,7 +109,7 @@ export function AppSidebar() {
                       : "mx-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
                   )}
                 >
-                  <NavLink to="/" className="group-data-[collapsible=icon]:justify-center">
+                  <NavLink to="/" onClick={handleNavClick} className="group-data-[collapsible=icon]:justify-center">
                     <Home className="h-4 w-4 shrink-0" />
                     <span>Home</span>
                   </NavLink>
@@ -121,7 +127,7 @@ export function AppSidebar() {
                       : "mx-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
                   )}
                 >
-                  <NavLink to="/files" className="group-data-[collapsible=icon]:justify-center">
+                  <NavLink to="/files" onClick={handleNavClick} className="group-data-[collapsible=icon]:justify-center">
                     <FolderOpen className="h-4 w-4 shrink-0" />
                     <span>Files</span>
                   </NavLink>
@@ -139,7 +145,7 @@ export function AppSidebar() {
                       : "mx-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
                   )}
                 >
-                  <NavLink to="/settings" className="group-data-[collapsible=icon]:justify-center">
+                  <NavLink to="/settings" onClick={handleNavClick} className="group-data-[collapsible=icon]:justify-center">
                     <Settings className="h-4 w-4 shrink-0" />
                     <span>Settings</span>
                   </NavLink>
@@ -173,7 +179,7 @@ export function AppSidebar() {
                           : "mx-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium",
                       )}
                     >
-                      <NavLink to={`/institute/${institute.id}`} className="group-data-[collapsible=icon]:justify-center">
+                      <NavLink to={`/institute/${institute.id}`} onClick={handleNavClick} className="group-data-[collapsible=icon]:justify-center">
                         <Building2 className="h-4 w-4 shrink-0" />
                         <span className="truncate">{institute.name}</span>
                       </NavLink>
@@ -205,7 +211,7 @@ export function AppSidebar() {
                             isActive={isActiveClass(cls.id)}
                             className="rounded-md transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-primary/15 data-[active=true]:text-primary data-[active=true]:font-medium"
                           >
-                            <NavLink to={`/institute/${institute.id}/class/${cls.id}`}>
+                            <NavLink to={`/institute/${institute.id}/class/${cls.id}`} onClick={handleNavClick}>
                               <BookOpen className="h-3.5 w-3.5" />
                               <span className="truncate">{cls.name}</span>
                             </NavLink>
