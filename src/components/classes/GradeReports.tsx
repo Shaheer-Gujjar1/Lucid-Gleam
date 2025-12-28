@@ -178,14 +178,14 @@ export function GradeReports({ classId }: GradeReportsProps) {
   return (
     <div className="space-y-6">
       <Tabs value={reportTab} onValueChange={setReportTab}>
-        <TabsList>
-          <TabsTrigger value="grades" className="gap-2">
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="grades" className="gap-2 px-4 py-2">
             <Award className="h-4 w-4" />
-            Grades
+            <span>Grades</span>
           </TabsTrigger>
-          <TabsTrigger value="attendance" className="gap-2">
+          <TabsTrigger value="attendance" className="gap-2 px-4 py-2">
             <Calendar className="h-4 w-4" />
-            Attendance
+            <span>Attendance</span>
           </TabsTrigger>
         </TabsList>
 

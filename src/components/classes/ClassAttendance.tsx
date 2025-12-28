@@ -414,7 +414,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 grid-cols-2 sm:grid-cols-5">
+      <div className="grid gap-4 grid-cols-3 sm:grid-cols-5">
         <Card className="border-none shadow">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-foreground">{stats.present}</p>
