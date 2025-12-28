@@ -36,6 +36,7 @@ export interface Student {
   classId: string;
   name: string;
   email?: string;
+  rollNumber?: string;
   photo?: string;
   createdAt: Date;
 }
