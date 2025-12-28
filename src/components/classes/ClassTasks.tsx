@@ -199,10 +199,10 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
               variant={filterType === type.value ? "default" : "outline"}
               size="sm"
               onClick={() => setFilterType(type.value)}
-              className="gap-2"
+              className="gap-1"
             >
-              <type.icon className="h-4 w-4" />
-              <span>{type.label}</span>
+              <type.icon className="h-4 w-4 shrink-0" />
+              <span className="text-xs sm:text-sm">{type.label}</span>
             </Button>
           ))}
         </div>
