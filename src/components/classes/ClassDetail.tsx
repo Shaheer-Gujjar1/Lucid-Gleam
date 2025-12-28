@@ -66,32 +66,32 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
         <ScrollArea className="w-full">
           <div className="bg-card/60 backdrop-blur-xl rounded-xl p-1.5 shadow-lg border border-border/30">
             <TabsList className="flex w-max gap-1 bg-transparent p-0">
-              <TabsTrigger value="dashboard" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <LayoutDashboard className="h-4 w-4" /><span className="hidden sm:inline">Overview</span>
+              <TabsTrigger value="dashboard" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <LayoutDashboard className="h-4 w-4 shrink-0" /><span>Overview</span>
               </TabsTrigger>
-              <TabsTrigger value="students" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Users className="h-4 w-4" /><span className="hidden sm:inline">Students</span>
+              <TabsTrigger value="students" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Users className="h-4 w-4 shrink-0" /><span>Students</span>
               </TabsTrigger>
-              <TabsTrigger value="tasks" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <ClipboardList className="h-4 w-4" /><span className="hidden sm:inline">Tasks</span>
+              <TabsTrigger value="tasks" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <ClipboardList className="h-4 w-4 shrink-0" /><span>Tasks</span>
               </TabsTrigger>
-              <TabsTrigger value="grades" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <BarChart3 className="h-4 w-4" /><span className="hidden sm:inline">Reports</span>
+              <TabsTrigger value="grades" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <BarChart3 className="h-4 w-4 shrink-0" /><span>Reports</span>
               </TabsTrigger>
-              <TabsTrigger value="performance" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <UserCheck className="h-4 w-4" /><span className="hidden sm:inline">Performance</span>
+              <TabsTrigger value="performance" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <UserCheck className="h-4 w-4 shrink-0" /><span>Performance</span>
               </TabsTrigger>
-              <TabsTrigger value="attendance" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Calendar className="h-4 w-4" /><span className="hidden sm:inline">Attendance</span>
+              <TabsTrigger value="attendance" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Calendar className="h-4 w-4 shrink-0" /><span>Attendance</span>
               </TabsTrigger>
-              <TabsTrigger value="behaviour" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Heart className="h-4 w-4" /><span className="hidden sm:inline">Behaviour</span>
+              <TabsTrigger value="behaviour" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Heart className="h-4 w-4 shrink-0" /><span>Behaviour</span>
               </TabsTrigger>
-              <TabsTrigger value="seating" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Grid3X3 className="h-4 w-4" /><span className="hidden sm:inline">Seating</span>
+              <TabsTrigger value="seating" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Grid3X3 className="h-4 w-4 shrink-0" /><span>Seating</span>
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <Settings2 className="h-4 w-4" /><span className="hidden sm:inline">Schedule</span>
+              <TabsTrigger value="schedule" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Settings2 className="h-4 w-4 shrink-0" /><span>Schedule</span>
               </TabsTrigger>
             </TabsList>
           </div>
