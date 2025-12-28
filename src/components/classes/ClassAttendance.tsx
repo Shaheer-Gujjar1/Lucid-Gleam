@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar, Clock, BookOpen, Plus, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Clock, BookOpen, Plus, AlertCircle, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
   Student,
@@ -73,8 +83,12 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const [lectureTime, setLectureTime] = useState<string>(getCurrentTime());
   const [existingLectures, setExistingLectures] = useState<number[]>([]);
   const [attendance, setAttendance] = useState<Record<string, Attendance["status"]>>({});
+  const [savedAttendance, setSavedAttendance] = useState<Record<string, Attendance["status"]>>({});
+  const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
+  const [showChangeWarning, setShowChangeWarning] = useState(false);
+  const [pendingChange, setPendingChange] = useState<{ studentId: string; status: Attendance["status"] } | null>(null);
 
   // Derived values from schedule
   const subjects = classData?.subjects || [];
@@ -82,6 +96,9 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const lecturePeriods = classData?.lecturePeriods || [];
   const lectureCount = lecturePeriods.length; // Only use configured lectures from schedule
   const hasSchedule = lectureCount > 0;
+
+  // Check if there are unsaved changes
+  const hasChanges = JSON.stringify(attendance) !== JSON.stringify(savedAttendance);
 
   useEffect(() => {
     loadInitialData();
@@ -140,6 +157,8 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
       map[r.studentId] = r.status;
     });
     setAttendance(map);
+    setSavedAttendance(map);
+    setIsSaved(records.length > 0);
     
     // Set time from first record if exists, or from schedule
     if (records.length > 0 && records[0].time) {
@@ -149,54 +168,70 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     }
   }
 
-  const handleStatusChange = async (studentId: string, status: Attendance["status"]) => {
-    setSaving(prev => ({ ...prev, [studentId]: true }));
+  const handleStatusChange = (studentId: string, status: Attendance["status"]) => {
+    // If already saved and trying to change, show warning
+    if (isSaved && savedAttendance[studentId] && savedAttendance[studentId] !== status) {
+      setPendingChange({ studentId, status });
+      setShowChangeWarning(true);
+      return;
+    }
+    
     setAttendance(prev => ({ ...prev, [studentId]: status }));
+  };
+
+  const confirmChange = () => {
+    if (pendingChange) {
+      setAttendance(prev => ({ ...prev, [pendingChange.studentId]: pendingChange.status }));
+      setPendingChange(null);
+    }
+    setShowChangeWarning(false);
+  };
+
+  const saveAttendance = async () => {
+    setSaving(true);
     
     try {
-      await upsertAttendance(
-        classId, 
-        studentId, 
-        selectedDate, 
-        selectedLecture, 
-        status, 
-        lectureTime,
-        selectedSubject?.id,
-        selectedSubject?.name
-      );
+      for (const student of students) {
+        const status = attendance[student.id];
+        if (status) {
+          await upsertAttendance(
+            classId, 
+            student.id, 
+            selectedDate, 
+            selectedLecture, 
+            status, 
+            lectureTime,
+            selectedSubject?.id,
+            selectedSubject?.name
+          );
+        }
+      }
       
       // Refresh existing lectures list
       const lectures = await getLecturesForDate(classId, selectedDate, selectedSubject?.id);
       setExistingLectures(lectures);
       
-      toast.success("Attendance saved");
+      setSavedAttendance({ ...attendance });
+      setIsSaved(true);
+      toast.success("Attendance saved successfully");
     } catch (error) {
       toast.error("Failed to save attendance");
     } finally {
-      setSaving(prev => ({ ...prev, [studentId]: false }));
+      setSaving(false);
     }
   };
 
-  const markAllPresent = async () => {
-    for (const student of students) {
-      await upsertAttendance(
-        classId, 
-        student.id, 
-        selectedDate, 
-        selectedLecture, 
-        "present", 
-        lectureTime,
-        selectedSubject?.id,
-        selectedSubject?.name
-      );
-    }
-    await loadAttendance();
-    
-    // Refresh existing lectures list
-    const lectures = await getLecturesForDate(classId, selectedDate, selectedSubject?.id);
-    setExistingLectures(lectures);
-    
-    toast.success("All students marked present");
+  const markAllPresent = () => {
+    const newAttendance: Record<string, Attendance["status"]> = {};
+    students.forEach(student => {
+      // If already saved with a different status, keep the saved status
+      if (isSaved && savedAttendance[student.id]) {
+        newAttendance[student.id] = savedAttendance[student.id];
+      } else {
+        newAttendance[student.id] = "present";
+      }
+    });
+    setAttendance(newAttendance);
   };
 
   const startNewLecture = () => {
@@ -209,6 +244,8 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     const periodTime = lecturePeriods[nextLecture - 1]?.startTime;
     setLectureTime(periodTime || getCurrentTime());
     setAttendance({});
+    setSavedAttendance({});
+    setIsSaved(false);
   };
 
   const handleLectureChange = (lectureNum: number) => {
@@ -341,7 +378,19 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={markAllPresent}>Mark All Present</Button>
+          <div className="flex gap-2">
+            <Button onClick={markAllPresent} variant="outline" disabled={isSaved}>
+              Mark All Present
+            </Button>
+            <Button 
+              onClick={saveAttendance} 
+              disabled={saving || Object.keys(attendance).length === 0}
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : isSaved ? "Update" : "Save Attendance"}
+            </Button>
+          </div>
         </div>
 
         {/* Lecture & Time Row */}
@@ -447,6 +496,16 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
         </Card>
       </div>
 
+      {/* Saved Status Badge */}
+      {isSaved && (
+        <Alert className="border-chart-1/50 bg-chart-1/10">
+          <AlertCircle className="h-4 w-4 text-chart-1" />
+          <AlertDescription className="text-chart-1">
+            This lecture's attendance has been saved. Changes will require confirmation.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Attendance Table */}
       <Card className="border-none shadow-lg">
         <CardHeader>
@@ -460,6 +519,16 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
               {selectedSubject && (
                 <Badge className={selectedSubject.color}>
                   {selectedSubject.name}
+                </Badge>
+              )}
+              {isSaved && (
+                <Badge className="bg-chart-1/20 text-chart-1">
+                  Saved
+                </Badge>
+              )}
+              {hasChanges && (
+                <Badge variant="outline" className="text-chart-3 border-chart-3">
+                  Unsaved Changes
                 </Badge>
               )}
             </div>
@@ -476,7 +545,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
             <TableBody>
               {students.map((student) => {
                 const status = attendance[student.id];
-                const isSaving = saving[student.id];
+                const isChanged = isSaved && savedAttendance[student.id] && savedAttendance[student.id] !== status;
                 return (
                   <TableRow key={student.id}>
                     <TableCell>
@@ -493,13 +562,17 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
                           </div>
                         )}
                         <span className="font-medium text-foreground">{student.name}</span>
+                        {isChanged && (
+                          <Badge variant="outline" className="text-chart-3 border-chart-3 text-xs">
+                            Changed
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Select
                         value={status || ""}
                         onValueChange={(value) => handleStatusChange(student.id, value as Attendance["status"])}
-                        disabled={isSaving}
                       >
                         <SelectTrigger className={`w-[140px] ${status ? getStatusColor(status) : ""}`}>
                           <SelectValue placeholder="Select..." />
@@ -520,6 +593,22 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Change Warning Dialog */}
+      <AlertDialog open={showChangeWarning} onOpenChange={setShowChangeWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change Saved Attendance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This attendance record has already been saved. Are you sure you want to change it? This action should only be done to correct mistakes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingChange(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmChange}>Confirm Change</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

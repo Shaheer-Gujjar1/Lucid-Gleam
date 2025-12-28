@@ -19,16 +19,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar, MessageSquare } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, MessageSquare, BookOpen, Clock, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Student,
   Behaviour,
   BehaviourRating,
+  Class,
+  ClassSubject,
+  LecturePeriod,
   getStudentsByClass,
   getBehaviourByDate,
   upsertBehaviour,
+  getBehaviourLecturesForDate,
+  getClass,
 } from "@/lib/db";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ClassBehaviourProps {
   classId: string;
@@ -56,32 +62,83 @@ function formatDateDisplay(dateStr: string): string {
   });
 }
 
+function getCurrentTime(): string {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+}
+
 export function ClassBehaviour({ classId }: ClassBehaviourProps) {
+  const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedDate, setSelectedDate] = useState(formatDateForInput(new Date()));
+  const [selectedLecture, setSelectedLecture] = useState<number>(1);
+  const [selectedSubject, setSelectedSubject] = useState<ClassSubject | null>(null);
+  const [lectureTime, setLectureTime] = useState<string>(getCurrentTime());
+  const [existingLectures, setExistingLectures] = useState<number[]>([]);
   const [behaviour, setBehaviour] = useState<Record<string, { rating: BehaviourRating; comments: string }>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
 
+  // Derived values from schedule
+  const subjects = classData?.subjects || [];
+  const hasSubjects = subjects.length > 0;
+  const lecturePeriods = classData?.lecturePeriods || [];
+  const lectureCount = lecturePeriods.length;
+  const hasSchedule = lectureCount > 0;
+
   useEffect(() => {
-    loadStudents();
+    loadInitialData();
   }, [classId]);
 
   useEffect(() => {
-    if (students.length > 0) {
+    if (students.length > 0 && classData) {
+      loadLecturesAndBehaviour();
+    }
+  }, [selectedDate, students, classData]);
+
+  useEffect(() => {
+    if (students.length > 0 && classData) {
       loadBehaviour();
     }
-  }, [selectedDate, students]);
+  }, [selectedLecture, selectedSubject]);
 
-  async function loadStudents() {
-    const data = await getStudentsByClass(classId);
-    setStudents(data.sort((a, b) => a.name.localeCompare(b.name)));
+  async function loadInitialData() {
+    const [studentsData, classInfo] = await Promise.all([
+      getStudentsByClass(classId),
+      getClass(classId),
+    ]);
+    
+    setStudents(studentsData.sort((a, b) => a.name.localeCompare(b.name)));
+    setClassData(classInfo || null);
+    
+    // Auto-select first subject if available
+    if (classInfo?.subjects && classInfo.subjects.length > 0) {
+      setSelectedSubject(classInfo.subjects[0]);
+    }
+    
+    // Set initial lecture time from schedule if available
+    if (classInfo?.lecturePeriods && classInfo.lecturePeriods.length > 0) {
+      setLectureTime(classInfo.lecturePeriods[0].startTime);
+    }
+    
     setLoading(false);
   }
 
+  async function loadLecturesAndBehaviour() {
+    const lectures = await getBehaviourLecturesForDate(classId, selectedDate, selectedSubject?.id);
+    setExistingLectures(lectures);
+    
+    // Auto-select first existing lecture or default to 1
+    if (lectures.length > 0 && !lectures.includes(selectedLecture)) {
+      setSelectedLecture(lectures[0]);
+    }
+    
+    await loadBehaviour();
+  }
+
   async function loadBehaviour() {
-    const records = await getBehaviourByDate(classId, selectedDate);
+    const records = await getBehaviourByDate(classId, selectedDate, selectedLecture, selectedSubject?.id);
     const map: Record<string, { rating: BehaviourRating; comments: string }> = {};
     
     // Initialize all students with default "satisfactory"
@@ -95,6 +152,13 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
     });
     
     setBehaviour(map);
+    
+    // Set time from first record if exists, or from schedule
+    if (records.length > 0 && records[0].time) {
+      setLectureTime(records[0].time);
+    } else if (lecturePeriods[selectedLecture - 1]) {
+      setLectureTime(lecturePeriods[selectedLecture - 1].startTime);
+    }
   }
 
   const handleRatingChange = async (studentId: string, rating: BehaviourRating) => {
@@ -103,7 +167,22 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
     setBehaviour(prev => ({ ...prev, [studentId]: { ...current, rating } }));
     
     try {
-      await upsertBehaviour(classId, studentId, selectedDate, rating, current.comments);
+      await upsertBehaviour(
+        classId,
+        studentId,
+        selectedDate,
+        selectedLecture,
+        rating,
+        lectureTime,
+        selectedSubject?.id,
+        selectedSubject?.name,
+        current.comments
+      );
+      
+      // Refresh existing lectures list
+      const lectures = await getBehaviourLecturesForDate(classId, selectedDate, selectedSubject?.id);
+      setExistingLectures(lectures);
+      
       toast.success("Behaviour saved");
     } catch (error) {
       toast.error("Failed to save behaviour");
@@ -122,7 +201,17 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
     const current = behaviour[studentId] || { rating: "satisfactory" as BehaviourRating, comments: "" };
     
     try {
-      await upsertBehaviour(classId, studentId, selectedDate, current.rating, current.comments);
+      await upsertBehaviour(
+        classId,
+        studentId,
+        selectedDate,
+        selectedLecture,
+        current.rating,
+        lectureTime,
+        selectedSubject?.id,
+        selectedSubject?.name,
+        current.comments
+      );
       toast.success("Comments saved");
     } catch (error) {
       toast.error("Failed to save comments");
@@ -131,10 +220,35 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
     }
   };
 
+  const handleLectureChange = (lectureNum: number) => {
+    setSelectedLecture(lectureNum);
+    // Auto-set time from schedule
+    const periodTime = lecturePeriods[lectureNum - 1]?.startTime;
+    if (periodTime) {
+      setLectureTime(periodTime);
+    }
+  };
+
+  const startNewLecture = () => {
+    // Find next available lecture number
+    const availableLectures = Array.from({ length: lectureCount }, (_, i) => i + 1);
+    const nextLecture = availableLectures.find(l => !existingLectures.includes(l)) || selectedLecture + 1;
+    setSelectedLecture(Math.min(nextLecture, lectureCount));
+    
+    // Set time from schedule if available
+    const periodTime = lecturePeriods[nextLecture - 1]?.startTime;
+    setLectureTime(periodTime || getCurrentTime());
+    setBehaviour({});
+  };
+
   const changeDate = (days: number) => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + days);
     setSelectedDate(formatDateForInput(date));
+    setSelectedLecture(1);
+    // Reset time from schedule
+    const periodTime = lecturePeriods[0]?.startTime;
+    setLectureTime(periodTime || getCurrentTime());
   };
 
   const getRatingColor = (rating?: BehaviourRating) => {
@@ -150,6 +264,14 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
       needs_improvement: values.filter(b => b.rating === "needs_improvement").length,
       poor: values.filter(b => b.rating === "poor").length,
     };
+  };
+
+  const getLectureTimeDisplay = (lectureNum: number): string => {
+    const period = lecturePeriods[lectureNum - 1];
+    if (period) {
+      return `${period.startTime} - ${period.endTime}`;
+    }
+    return "";
   };
 
   if (loading) {
@@ -172,27 +294,142 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
     );
   }
 
+  if (!hasSchedule) {
+    return (
+      <Card className="border-dashed border-2">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+          <p className="text-lg text-muted-foreground text-center">
+            No lecture schedule configured.
+          </p>
+          <p className="text-sm text-muted-foreground text-center mt-2">
+            Go to the "Schedule" tab to add subjects and lecture timings first.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const stats = getStats();
 
   return (
     <div className="space-y-6">
-      {/* Date Navigation */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+      {/* Setup Alert */}
+      {!hasSubjects && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <span className="font-medium">Tip:</span> Go to the "Schedule" tab to add subjects and configure lecture timings for this class.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Subject Selection (if multiple subjects) */}
+      {hasSubjects && (
+        <div className="flex flex-wrap gap-2">
+          {subjects.map((subject) => (
+            <Button
+              key={subject.id}
+              variant={selectedSubject?.id === subject.id ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedSubject(subject)}
+              className={selectedSubject?.id === subject.id ? "" : subject.color}
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              {subject.name}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Date & Lecture Navigation */}
+      <div className="flex flex-col gap-4">
+        {/* Date Row */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-auto"
-            />
+            <Button variant="outline" size="icon" onClick={() => changeDate(-1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-auto"
+              />
+            </div>
+            <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <Button variant="outline" size="icon" onClick={() => changeDate(1)}>
-            <ChevronRight className="h-4 w-4" />
+        </div>
+
+        {/* Lecture & Time Row */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4 flex-wrap">
+            {/* Lecture Selector */}
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <Select
+                value={String(selectedLecture)}
+                onValueChange={(v) => handleLectureChange(Number(v))}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Lecture" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: lectureCount }, (_, i) => i + 1).map((num) => (
+                    <SelectItem key={num} value={String(num)}>
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <span>Lecture {num}</span>
+                        {existingLectures.includes(num) && <span className="text-chart-1">✓</span>}
+                        {getLectureTimeDisplay(num) && (
+                          <span className="text-xs text-muted-foreground">
+                            {getLectureTimeDisplay(num)}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Time Input */}
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Input
+                type="time"
+                value={lectureTime}
+                onChange={(e) => setLectureTime(e.target.value)}
+                className="w-[120px]"
+              />
+            </div>
+
+            {/* Existing Lectures Indicator */}
+            {existingLectures.length > 0 && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>Recorded:</span>
+                {existingLectures.map((l) => (
+                  <Button
+                    key={l}
+                    variant={l === selectedLecture ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 w-6 p-0 text-xs"
+                    onClick={() => handleLectureChange(l)}
+                  >
+                    {l}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* New Lecture Button */}
+          <Button variant="outline" onClick={startNewLecture} className="gap-2">
+            <Plus className="h-4 w-4" />
+            New Lecture
           </Button>
         </div>
       </div>
@@ -234,8 +471,19 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
       {/* Behaviour Table */}
       <Card className="border-none shadow-lg">
         <CardHeader>
-          <CardTitle className="text-card-foreground">
-            {formatDateDisplay(selectedDate)}
+          <CardTitle className="text-card-foreground flex flex-col sm:flex-row sm:items-center gap-2">
+            <span>{formatDateDisplay(selectedDate)}</span>
+            <div className="flex items-center gap-2 text-sm font-normal">
+              <Badge variant="secondary">
+                Lecture {selectedLecture}
+                {getLectureTimeDisplay(selectedLecture) && ` (${getLectureTimeDisplay(selectedLecture)})`}
+              </Badge>
+              {selectedSubject && (
+                <Badge className={selectedSubject.color}>
+                  {selectedSubject.name}
+                </Badge>
+              )}
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>

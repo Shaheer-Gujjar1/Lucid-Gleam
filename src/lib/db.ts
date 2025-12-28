@@ -94,7 +94,11 @@ export interface Behaviour {
   id: string;
   classId: string;
   studentId: string;
+  subjectId?: string;
+  subjectName?: string;
   date: string; // YYYY-MM-DD format
+  lectureNumber: number;
+  time?: string;
   rating: BehaviourRating;
   comments?: string;
   createdAt: Date;
@@ -661,10 +665,14 @@ export async function getBehaviourByClass(classId: string): Promise<Behaviour[]>
   return db.getAllFromIndex('behaviour', 'by-class', classId);
 }
 
-export async function getBehaviourByDate(classId: string, date: string): Promise<Behaviour[]> {
+export async function getBehaviourByDate(classId: string, date: string, lectureNumber?: number, subjectId?: string): Promise<Behaviour[]> {
   const db = await getDB();
   const all = await db.getAllFromIndex('behaviour', 'by-class', classId);
-  return all.filter(b => b.date === date);
+  return all.filter(b => 
+    b.date === date && 
+    (lectureNumber === undefined || b.lectureNumber === lectureNumber) &&
+    (subjectId === undefined || b.subjectId === subjectId)
+  );
 }
 
 export async function getBehaviourByStudent(studentId: string): Promise<Behaviour[]> {
@@ -676,15 +684,24 @@ export async function upsertBehaviour(
   classId: string,
   studentId: string,
   date: string,
+  lectureNumber: number,
   rating: BehaviourRating,
+  time?: string,
+  subjectId?: string,
+  subjectName?: string,
   comments?: string
 ): Promise<Behaviour> {
   const db = await getDB();
   const existing = (await db.getAllFromIndex('behaviour', 'by-class', classId))
-    .find(b => b.studentId === studentId && b.date === date);
+    .find(b => 
+      b.studentId === studentId && 
+      b.date === date && 
+      b.lectureNumber === lectureNumber &&
+      (subjectId === undefined || b.subjectId === subjectId)
+    );
   
   if (existing) {
-    const updated = { ...existing, rating, comments };
+    const updated = { ...existing, rating, time, subjectId, subjectName, comments };
     await db.put('behaviour', updated);
     return updated;
   }
@@ -693,13 +710,26 @@ export async function upsertBehaviour(
     id: crypto.randomUUID(),
     classId,
     studentId,
+    subjectId,
+    subjectName,
     date,
+    lectureNumber,
+    time,
     rating,
     comments,
     createdAt: new Date(),
   };
   await db.add('behaviour', newRecord);
   return newRecord;
+}
+
+export async function getBehaviourLecturesForDate(classId: string, date: string, subjectId?: string): Promise<number[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex('behaviour', 'by-class', classId);
+  const lectures = all
+    .filter(b => b.date === date && (subjectId === undefined || b.subjectId === subjectId))
+    .map(b => b.lectureNumber);
+  return [...new Set(lectures)].sort((a, b) => a - b);
 }
 
 export async function deleteBehaviourByClass(classId: string): Promise<void> {
