@@ -88,7 +88,6 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showChangeWarning, setShowChangeWarning] = useState(false);
-  const [pendingChange, setPendingChange] = useState<{ studentId: string; status: Attendance["status"] } | null>(null);
 
   // Derived values from schedule
   const subjects = classData?.subjects || [];
@@ -169,22 +168,21 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   }
 
   const handleStatusChange = (studentId: string, status: Attendance["status"]) => {
-    // If already saved and trying to change, show warning
-    if (isSaved && savedAttendance[studentId] && savedAttendance[studentId] !== status) {
-      setPendingChange({ studentId, status });
-      setShowChangeWarning(true);
-      return;
-    }
-    
     setAttendance(prev => ({ ...prev, [studentId]: status }));
   };
 
-  const confirmChange = () => {
-    if (pendingChange) {
-      setAttendance(prev => ({ ...prev, [pendingChange.studentId]: pendingChange.status }));
-      setPendingChange(null);
+  const handleSaveClick = () => {
+    // If already saved and there are changes, show warning first
+    if (isSaved && hasChanges) {
+      setShowChangeWarning(true);
+      return;
     }
+    saveAttendance();
+  };
+
+  const confirmChange = () => {
     setShowChangeWarning(false);
+    saveAttendance();
   };
 
   const saveAttendance = async () => {
@@ -383,8 +381,8 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
               Mark All Present
             </Button>
             <Button 
-              onClick={saveAttendance} 
-              disabled={saving || Object.keys(attendance).length === 0}
+              onClick={handleSaveClick} 
+              disabled={saving || Object.keys(attendance).length === 0 || !hasChanges}
               className="gap-2"
             >
               <Save className="h-4 w-4" />
@@ -604,8 +602,8 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingChange(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmChange}>Confirm Change</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmChange}>Confirm Update</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
