@@ -93,6 +93,8 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showChangeWarning, setShowChangeWarning] = useState(false);
+  const [showAllRecordedPrompt, setShowAllRecordedPrompt] = useState(false);
+  const [userConfirmedView, setUserConfirmedView] = useState(false);
 
   // Derived values from schedule
   const subjects = classData?.subjects || [];
@@ -149,6 +151,16 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     // Auto-select first existing lecture or default to 1
     if (lectures.length > 0 && !lectures.includes(selectedLecture)) {
       setSelectedLecture(lectures[0]);
+    }
+    
+    // Check if today and all lectures are recorded
+    const isToday = selectedDate === formatDateForInput(new Date());
+    const allLecturesRecorded = lectureCount > 0 && lectures.length >= lectureCount;
+    
+    if (isToday && allLecturesRecorded && !userConfirmedView) {
+      setShowAllRecordedPrompt(true);
+    } else {
+      setShowAllRecordedPrompt(false);
     }
     
     await loadAttendance();
@@ -273,6 +285,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     date.setDate(date.getDate() + days);
     setSelectedDate(formatDateForInput(date));
     setSelectedLecture(1);
+    setUserConfirmedView(false); // Reset confirmation when date changes
     // Reset time from schedule
     const periodTime = lecturePeriods[0]?.startTime;
     setLectureTime(periodTime || getCurrentTime());
@@ -420,14 +433,12 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
                 <SelectContent>
                   {Array.from({ length: lectureCount }, (_, i) => i + 1).map((num) => (
                     <SelectItem key={num} value={String(num)}>
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <span>Lecture {num}</span>
-                        {existingLectures.includes(num) && <span className="text-chart-1">✓</span>}
-                        {getLectureTimeDisplay(num) && (
-                          <span className="text-xs text-muted-foreground">
-                            {getLectureTimeDisplay(num)}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0">Lecture {num}</span>
+                        {existingLectures.includes(num) && <span className="text-chart-1 shrink-0">✓</span>}
+                        <span className="text-xs text-muted-foreground truncate hidden sm:inline">
+                          {getLectureTimeDisplay(num)}
+                        </span>
                       </div>
                     </SelectItem>
                   ))}
@@ -617,6 +628,25 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmChange}>Confirm Update</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* All Lectures Recorded Prompt */}
+      <AlertDialog open={showAllRecordedPrompt} onOpenChange={setShowAllRecordedPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Today's Attendance Already Recorded</AlertDialogTitle>
+            <AlertDialogDescription>
+              All {lectureCount} lecture{lectureCount > 1 ? 's' : ''} for today have already been recorded. Would you like to view or edit the attendance records?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => changeDate(-1)}>Go to Previous Day</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              setUserConfirmedView(true);
+              setShowAllRecordedPrompt(false);
+            }}>View/Edit Attendance</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
