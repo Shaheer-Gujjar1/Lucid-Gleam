@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +15,29 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-const App = () => (
+// Apply persisted settings on app load
+function applyPersistedSettings() {
+  const darkMode = localStorage.getItem("darkMode") === "true";
+  const compactView = localStorage.getItem("compactView") === "true";
+  
+  if (darkMode) {
+    document.documentElement.classList.add("dark");
+  }
+  if (compactView) {
+    document.documentElement.classList.add("compact");
+  }
+}
+
+// Apply immediately on script load
+applyPersistedSettings();
+
+const App = () => {
+  // Re-apply on mount to ensure settings are applied after hydration
+  useEffect(() => {
+    applyPersistedSettings();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
@@ -34,6 +57,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

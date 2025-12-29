@@ -74,6 +74,11 @@ function getCurrentTime(): string {
   return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 }
 
+// Helper to get attendance save key for localStorage
+function getAttendanceSaveKey(classId: string, date: string, lecture: number, subjectId?: string): string {
+  return `attendance_saved_${classId}_${date}_${lecture}_${subjectId || 'all'}`;
+}
+
 export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -157,7 +162,11 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
     });
     setAttendance(map);
     setSavedAttendance(map);
-    setIsSaved(records.length > 0);
+    
+    // Check both IndexedDB records AND localStorage for saved state
+    const saveKey = getAttendanceSaveKey(classId, selectedDate, selectedLecture, selectedSubject?.id);
+    const savedInStorage = localStorage.getItem(saveKey) === 'true';
+    setIsSaved(records.length > 0 || savedInStorage);
     
     // Set time from first record if exists, or from schedule
     if (records.length > 0 && records[0].time) {
@@ -208,6 +217,10 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
       // Refresh existing lectures list
       const lectures = await getLecturesForDate(classId, selectedDate, selectedSubject?.id);
       setExistingLectures(lectures);
+      
+      // Persist saved state to localStorage
+      const saveKey = getAttendanceSaveKey(classId, selectedDate, selectedLecture, selectedSubject?.id);
+      localStorage.setItem(saveKey, 'true');
       
       setSavedAttendance({ ...attendance });
       setIsSaved(true);
