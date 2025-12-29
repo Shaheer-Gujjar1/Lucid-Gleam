@@ -352,7 +352,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const stats = getStats();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       {/* Setup Alert */}
       {!hasSubjects && (
         <Alert>
@@ -632,24 +632,35 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* All Lectures Recorded Prompt */}
-      <AlertDialog open={showAllRecordedPrompt} onOpenChange={setShowAllRecordedPrompt}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Today's Attendance Already Recorded</AlertDialogTitle>
-            <AlertDialogDescription>
-              All {lectureCount} lecture{lectureCount > 1 ? 's' : ''} for today have already been recorded. Would you like to view or edit the attendance records?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => changeDate(-1)}>Go to Previous Day</AlertDialogCancel>
-            <AlertDialogAction onClick={() => {
-              setUserConfirmedView(true);
-              setShowAllRecordedPrompt(false);
-            }}>View/Edit Attendance</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* All Lectures Recorded Overlay */}
+      {showAllRecordedPrompt && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center rounded-lg backdrop-blur-md bg-background/60">
+          <Card className="max-w-md mx-4 border border-border/50 bg-card/80 backdrop-blur-sm shadow-xl">
+            <CardHeader className="text-center pb-2">
+              <div className="mx-auto w-12 h-12 rounded-full bg-chart-1/20 flex items-center justify-center mb-3">
+                <AlertCircle className="h-6 w-6 text-chart-1" />
+              </div>
+              <CardTitle className="text-lg">Today's Attendance Already Recorded</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-muted-foreground text-sm">
+                All {lectureCount} lecture{lectureCount > 1 ? 's' : ''} for today have already been recorded. Would you like to view or edit the attendance records?
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <Button variant="outline" onClick={() => changeDate(-1)}>
+                  Go to Previous Day
+                </Button>
+                <Button onClick={() => {
+                  setUserConfirmedView(true);
+                  setShowAllRecordedPrompt(false);
+                }}>
+                  View/Edit Attendance
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
