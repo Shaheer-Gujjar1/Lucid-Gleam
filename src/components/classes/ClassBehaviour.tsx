@@ -366,26 +366,26 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
         </div>
 
         {/* Lecture & Time Row */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-4">
             {/* Lecture Selector */}
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <BookOpen className="h-4 w-4 text-muted-foreground shrink-0" />
               <Select
                 value={String(selectedLecture)}
                 onValueChange={(v) => handleLectureChange(Number(v))}
               >
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Lecture" />
                 </SelectTrigger>
                 <SelectContent>
                   {Array.from({ length: lectureCount }, (_, i) => i + 1).map((num) => (
                     <SelectItem key={num} value={String(num)}>
-                      <div className="flex items-center justify-between w-full gap-2">
-                        <span>Lecture {num}</span>
-                        {existingLectures.includes(num) && <span className="text-chart-1">✓</span>}
+                      <div className="flex items-center gap-2">
+                        <span className="shrink-0">Lecture {num}</span>
+                        {existingLectures.includes(num) && <span className="text-chart-1 shrink-0">✓</span>}
                         {getLectureTimeDisplay(num) && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground truncate hidden sm:inline">
                             {getLectureTimeDisplay(num)}
                           </span>
                         )}
@@ -398,19 +398,21 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
 
             {/* Time Input */}
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
               <Input
                 type="time"
                 value={lectureTime}
                 onChange={(e) => setLectureTime(e.target.value)}
-                className="w-[120px]"
+                className="w-full sm:w-[120px]"
               />
             </div>
+          </div>
 
-            {/* Existing Lectures Indicator */}
+          {/* Existing Lectures Indicator & New Button */}
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             {existingLectures.length > 0 && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span>Recorded:</span>
+                <span className="hidden sm:inline">Recorded:</span>
                 {existingLectures.map((l) => (
                   <Button
                     key={l}
@@ -424,13 +426,14 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
                 ))}
               </div>
             )}
-          </div>
 
-          {/* New Lecture Button */}
-          <Button variant="outline" onClick={startNewLecture} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Lecture
-          </Button>
+            {/* New Lecture Button */}
+            <Button variant="outline" onClick={startNewLecture} className="gap-2 shrink-0">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New Lecture</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          </div>
         </div>
       </div>
 
