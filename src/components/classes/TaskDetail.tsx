@@ -323,14 +323,14 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "grading" | "files")} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="grading" className="gap-2">
-            <ClipboardList className="h-4 w-4" />
-            Grading ({gradedCount}/{students.length})
+        <TabsList className="grid w-full grid-cols-2 sm:max-w-md h-auto">
+          <TabsTrigger value="grading" className="gap-2 py-3 text-xs sm:text-sm">
+            <ClipboardList className="h-4 w-4 shrink-0" />
+            <span className="truncate">Grading ({gradedCount}/{students.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="files" className="gap-2">
-            <Paperclip className="h-4 w-4" />
-            Files ({files.length})
+          <TabsTrigger value="files" className="gap-2 py-3 text-xs sm:text-sm">
+            <Paperclip className="h-4 w-4 shrink-0" />
+            <span className="truncate">Files ({files.length})</span>
           </TabsTrigger>
         </TabsList>
 
