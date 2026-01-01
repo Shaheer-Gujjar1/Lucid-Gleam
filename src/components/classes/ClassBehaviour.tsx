@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar, MessageSquare, BookOpen, Clock, Plus, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, MessageSquare, BookOpen, Clock, Plus, AlertCircle, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   Student,
@@ -79,6 +79,7 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [studentSearch, setStudentSearch] = useState("");
 
   // Derived values from schedule
   const subjects = classData?.subjects || [];
@@ -86,6 +87,13 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
   const lecturePeriods = classData?.lecturePeriods || [];
   const lectureCount = lecturePeriods.length;
   const hasSchedule = lectureCount > 0;
+
+  // Filter students by search
+  const filteredStudents = useMemo(() => {
+    if (!studentSearch.trim()) return students;
+    const searchLower = studentSearch.toLowerCase();
+    return students.filter(s => s.name.toLowerCase().includes(searchLower));
+  }, [students, studentSearch]);
 
   useEffect(() => {
     loadInitialData();
@@ -490,6 +498,18 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Student Search */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search students..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -499,7 +519,7 @@ export function ClassBehaviour({ classId }: ClassBehaviourProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {students.map((student) => {
+              {filteredStudents.map((student) => {
                 const record = behaviour[student.id] || { rating: "satisfactory", comments: "" };
                 const isSaving = saving[student.id];
                 const isExpanded = expandedComments[student.id];

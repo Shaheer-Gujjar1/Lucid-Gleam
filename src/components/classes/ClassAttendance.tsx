@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Calendar, Clock, BookOpen, Plus, AlertCircle, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Clock, BookOpen, Plus, AlertCircle, Save, Search } from "lucide-react";
 import { toast } from "sonner";
 import {
   Student,
@@ -95,6 +95,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
   const [showChangeWarning, setShowChangeWarning] = useState(false);
   const [showAllRecordedPrompt, setShowAllRecordedPrompt] = useState(false);
   const [userConfirmedView, setUserConfirmedView] = useState(false);
+  const [studentSearch, setStudentSearch] = useState("");
 
   // Derived values from schedule
   const subjects = classData?.subjects || [];
@@ -105,6 +106,13 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
 
   // Check if there are unsaved changes
   const hasChanges = JSON.stringify(attendance) !== JSON.stringify(savedAttendance);
+
+  // Filter students by search
+  const filteredStudents = useMemo(() => {
+    if (!studentSearch.trim()) return students;
+    const searchLower = studentSearch.toLowerCase();
+    return students.filter(s => s.name.toLowerCase().includes(searchLower));
+  }, [students, studentSearch]);
 
   useEffect(() => {
     loadInitialData();
@@ -557,6 +565,18 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Student Search */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search students..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -565,7 +585,7 @@ export function ClassAttendance({ classId }: ClassAttendanceProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {students.map((student) => {
+              {filteredStudents.map((student) => {
                 const status = attendance[student.id];
                 const isChanged = isSaved && savedAttendance[student.id] && savedAttendance[student.id] !== status;
                 return (

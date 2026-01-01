@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 import { getStudentsByClass, getTasksByClass, getAllGrades, getAttendanceByClass, Student, Task, Grade, Attendance } from "@/lib/db";
 import { TrendingUp, TrendingDown, Award, Calendar, Target, BookOpen } from "lucide-react";
+import { StudentSearchCombobox } from "./StudentSearchCombobox";
 
 interface StudentPerformanceProps {
   classId: string;
@@ -149,18 +149,13 @@ export function StudentPerformance({ classId, initialStudentId }: StudentPerform
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">Student Performance</h2>
-        <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Select a student" />
-          </SelectTrigger>
-          <SelectContent>
-            {students.map((student) => (
-              <SelectItem key={student.id} value={student.id}>
-                {student.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <StudentSearchCombobox
+          students={students}
+          value={selectedStudent}
+          onValueChange={setSelectedStudent}
+          placeholder="Select a student"
+          className="w-64"
+        />
       </div>
 
       {selectedStudentData && stats && (
