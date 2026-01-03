@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2, Heart } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2, Heart, TrendingUp, FileSpreadsheet } from "lucide-react";
 import { Class, Institute } from "@/lib/db";
 import { ClassDashboard } from "./ClassDashboard";
 import { ClassStudents } from "./ClassStudents";
@@ -10,9 +10,11 @@ import { ClassTasks } from "./ClassTasks";
 import { ClassAttendance } from "./ClassAttendance";
 import { ClassSchedule } from "./ClassSchedule";
 import { ClassBehaviour } from "./ClassBehaviour";
+import { BehaviourReports } from "./BehaviourReports";
 import { GradeReports } from "./GradeReports";
 import { StudentPerformance } from "./StudentPerformance";
 import { SeatingChart } from "./SeatingChart";
+import { MarksSheet } from "./MarksSheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
@@ -87,6 +89,12 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
               <TabsTrigger value="behaviour" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Heart className="h-4 w-4 shrink-0" /><span>Behaviour</span>
               </TabsTrigger>
+              <TabsTrigger value="behaviour-reports" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TrendingUp className="h-4 w-4 shrink-0" /><span>Behaviour Analytics</span>
+              </TabsTrigger>
+              <TabsTrigger value="marks" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <FileSpreadsheet className="h-4 w-4 shrink-0" /><span>Marks Sheet</span>
+              </TabsTrigger>
               <TabsTrigger value="seating" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Grid3X3 className="h-4 w-4 shrink-0" /><span>Seating</span>
               </TabsTrigger>
@@ -105,6 +113,8 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
         <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} initialStudentId={urlStudentId || undefined} /></TabsContent>
         <TabsContent value="attendance" className="mt-6"><ClassAttendance classId={classData.id} /></TabsContent>
         <TabsContent value="behaviour" className="mt-6"><ClassBehaviour classId={classData.id} /></TabsContent>
+        <TabsContent value="behaviour-reports" className="mt-6"><BehaviourReports classId={classData.id} /></TabsContent>
+        <TabsContent value="marks" className="mt-6"><MarksSheet classId={classData.id} /></TabsContent>
         <TabsContent value="seating" className="mt-6"><SeatingChart classId={classData.id} /></TabsContent>
         <TabsContent value="schedule" className="mt-6"><ClassSchedule classId={classData.id} /></TabsContent>
       </Tabs>
