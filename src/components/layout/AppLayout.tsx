@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Footer } from "./Footer";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { GraduationCap, Bell, Search, User, AlertTriangle, Clock, Calendar } from "lucide-react";
+import { GraduationCap, Bell, Search, User, AlertTriangle, Clock, Calendar, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { useState, useEffect } from "react";
 import { getAllClasses, getAllStudents, getAllTasks, Task, Class } from "@/lib/db";
 import { subscribeToDataChanges } from "@/lib/dataEvents";
 import { differenceInDays, isPast, isToday, isTomorrow, format } from "date-fns";
+import { getDismissedNotifications, dismissAllNotifications, isNotificationDismissed } from "@/lib/notificationStore";
+import { toast } from "sonner";
+
 interface NotificationItem {
   id: string;
   classId: string;
@@ -20,14 +23,19 @@ interface NotificationItem {
   description: string;
   time: string;
   type: "overdue" | "today" | "tomorrow" | "upcoming";
+  isRead: boolean;
 }
+
 export function AppLayout() {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
   useEffect(() => {
+    setDismissedIds(getDismissedNotifications());
     loadData();
     
     // Subscribe to data changes to refresh notifications
@@ -41,6 +49,9 @@ export function AppLayout() {
   }, []);
 
   async function loadData() {
+    const currentDismissed = getDismissedNotifications();
+    setDismissedIds(currentDismissed);
+    
     const [classesData, studentsData, tasksData] = await Promise.all([getAllClasses(), getAllStudents(), getAllTasks()]);
     setClasses(classesData);
     setStudents(studentsData);
@@ -74,7 +85,8 @@ export function AppLayout() {
         title: task.title,
         description: cls ? `${task.type} - ${cls.name}` : task.type,
         time,
-        type
+        type,
+        isRead: currentDismissed.has(task.id)
       };
     }).filter((n): n is NotificationItem => n !== null).sort((a, b) => {
       const order = {
@@ -87,6 +99,18 @@ export function AppLayout() {
     }).slice(0, 10);
     setNotifications(taskNotifications);
   }
+
+  const handleMarkAllAsRead = () => {
+    const unreadIds = notifications.filter(n => !n.isRead).map(n => n.id);
+    if (unreadIds.length === 0) {
+      toast.info("All notifications are already read");
+      return;
+    }
+    dismissAllNotifications(unreadIds);
+    setDismissedIds(getDismissedNotifications());
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    toast.success(`Marked ${unreadIds.length} notifications as read`);
+  };
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
@@ -109,7 +133,7 @@ export function AppLayout() {
         return <Calendar className="h-4 w-4 text-chart-1" />;
     }
   };
-  const overdueCount = notifications.filter(n => n.type === "overdue" || n.type === "today").length;
+  const unreadCount = notifications.filter(n => !n.isRead && (n.type === "overdue" || n.type === "today")).length;
   return <SidebarProvider>
       <FloatingOrbs />
       <div className="min-h-screen flex w-full p-2 sm:p-4">
@@ -143,16 +167,32 @@ export function AppLayout() {
                   <PopoverTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-primary hover:bg-primary/10 relative transition-all duration-300">
                       <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
-                      {overdueCount > 0 && <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-[10px] sm:text-xs flex items-center justify-center font-medium animate-bounce-subtle shadow-lg shadow-destructive/30">
-                          {overdueCount}
+                      {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-[10px] sm:text-xs flex items-center justify-center font-medium animate-bounce-subtle shadow-lg shadow-destructive/30">
+                          {unreadCount}
                         </span>}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80 max-w-80 bg-popover" align="end">
                     <div className="space-y-3">
-                      <h4 className="font-semibold text-foreground">Upcoming Deadlines</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-foreground">Upcoming Deadlines</h4>
+                        {notifications.some(n => !n.isRead) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 gap-1 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAllAsRead();
+                            }}
+                          >
+                            <CheckCheck className="h-3 w-3" />
+                            Mark all read
+                          </Button>
+                        )}
+                      </div>
                       {notifications.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No upcoming deadlines</p> : <div className="space-y-2 max-h-80 overflow-y-auto">
-                          {notifications.map(notification => <div key={notification.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors" onClick={() => {
+                          {notifications.map(notification => <div key={notification.id} className={`flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${notification.isRead ? 'opacity-60' : ''}`} onClick={() => {
                         const cls = classes.find(c => c.id === notification.classId);
                         if (cls) {
                           navigate(`/institute/${cls.instituteId}/class/${cls.id}?tab=tasks&taskId=${notification.id}`);
@@ -160,12 +200,15 @@ export function AppLayout() {
                       }}>
                               {getNotificationIcon(notification.type)}
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-foreground truncate">{notification.title}</p>
+                                <p className={`text-sm font-medium text-foreground truncate ${notification.isRead ? '' : 'font-semibold'}`}>{notification.title}</p>
                                 <p className="text-xs text-muted-foreground">{notification.description}</p>
                                 <Badge variant={notification.type === "overdue" ? "destructive" : "secondary"} className="text-xs mt-1">
                                   {notification.time}
                                 </Badge>
                               </div>
+                              {!notification.isRead && (
+                                <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                              )}
                             </div>)}
                         </div>}
                       <Button variant="outline" size="sm" className="w-full" onClick={() => navigate("/reminders")}>

@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Plus, Settings, Trash2, Save, Calculator, FileSpreadsheet, RefreshCw, AlertCircle, Download } from "lucide-react";
+import { Plus, Settings, Trash2, Save, Calculator, FileSpreadsheet, RefreshCw, AlertCircle, Download, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import {
   Student,
@@ -387,6 +387,73 @@ export function MarksSheet({ classId }: MarksSheetProps) {
     return { grade: "F", color: "text-destructive" };
   };
 
+  // Export to CSV/Excel
+  const exportToCSV = () => {
+    const headers = [
+      "Roll No",
+      "Student Name",
+      ...config.sessional.columns.map(c => c.name),
+      "Sessional Total",
+      ...config.exams.map(e => e.name),
+      "Total",
+      "Percentage",
+      "Grade"
+    ];
+
+    const rows = students.map(student => {
+      const totals = getStudentTotals(student.id);
+      const percentage = maxTotal > 0 ? (totals.total / maxTotal) * 100 : 0;
+      const gradeInfo = getGradeLabel(percentage);
+
+      return [
+        student.rollNumber || "",
+        student.name,
+        ...config.sessional.columns.map(c => getMarkForColumn(student.id, c.id, false)),
+        totals.sessional,
+        ...config.exams.map(e => getMarkForColumn(student.id, e.id, true)),
+        totals.total,
+        percentage.toFixed(1) + "%",
+        gradeInfo.grade
+      ];
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `marks-sheet-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Marks sheet exported to CSV");
+  };
+
+  // Export summary data for dashboard
+  const getMarksSummary = () => {
+    if (students.length === 0) return null;
+    
+    const totals = students.map(s => getStudentTotals(s.id).total);
+    const classAverage = totals.reduce((sum, t) => sum + t, 0) / students.length;
+    const highest = Math.max(...totals);
+    const lowest = Math.min(...totals);
+    const passCount = students.filter(s => (getStudentTotals(s.id).total / maxTotal) * 100 >= 50).length;
+    
+    return {
+      classAverage: classAverage.toFixed(1),
+      highest,
+      lowest,
+      passRate: Math.round((passCount / students.length) * 100),
+      maxTotal,
+      studentCount: students.length
+    };
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -445,9 +512,13 @@ export function MarksSheet({ classId }: MarksSheetProps) {
               </DialogHeader>
               
               <Tabs defaultValue="sessional" className="mt-4">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="sessional">Sessional ({maxSessional} marks)</TabsTrigger>
-                  <TabsTrigger value="exams">Exams ({maxExam} marks)</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 h-auto">
+                  <TabsTrigger value="sessional" className="text-xs sm:text-sm py-2 px-2">
+                    <span className="truncate">Sessional ({maxSessional} marks)</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="exams" className="text-xs sm:text-sm py-2 px-2">
+                    <span className="truncate">Exams ({maxExam} marks)</span>
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="sessional" className="space-y-4 mt-4">
@@ -459,22 +530,24 @@ export function MarksSheet({ classId }: MarksSheetProps) {
                         sessional: { ...prev.sessional, usePercentage: v },
                       }))}
                     />
-                    <Label>Use weighted percentages</Label>
+                    <Label className="text-sm">Use weighted percentages</Label>
                   </div>
                   
                   <div className="space-y-2">
                     {config.sessional.columns.map(col => (
-                      <div key={col.id} className="flex items-center gap-2 p-2 rounded bg-accent/50">
-                        <div className="flex-1">
-                          <span className="font-medium">{col.name}</span>
-                          <Badge variant="outline" className="ml-2">
+                      <div key={col.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 rounded bg-accent/50">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-sm">{col.name}</span>
+                          <Badge variant="outline" className="ml-2 text-xs">
                             {col.type === "auto" ? `Auto: ${col.autoSource}` : "Manual"}
                           </Badge>
                         </div>
-                        <span className="text-muted-foreground">Max: {col.maxMarks}</span>
-                        <Button variant="ghost" size="icon" onClick={() => removeColumn(col.id, false)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-sm whitespace-nowrap">Max: {col.maxMarks}</span>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeColumn(col.id, false)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -589,6 +662,10 @@ export function MarksSheet({ classId }: MarksSheetProps) {
           </Dialog>
           <Button onClick={() => loadData()} variant="outline" size="icon" title="Refresh data">
             <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button onClick={exportToCSV} variant="outline" className="gap-2" title="Export to CSV">
+            <FileDown className="h-4 w-4" />
+            <span className="hidden sm:inline">Export</span>
           </Button>
           <Button onClick={saveConfig} className="gap-2">
             <Save className="h-4 w-4" />
