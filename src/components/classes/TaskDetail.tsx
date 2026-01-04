@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,6 +41,7 @@ import {
   Search,
   ClipboardList,
   Paperclip,
+  CheckCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,6 +58,7 @@ import {
   upsertGrade,
   deleteGrade,
 } from "@/lib/db";
+import { getDuplicateNameStudentIds, getStudentDisplayName } from "@/lib/studentUtils";
 
 interface TaskDetailProps {
   task: Task;
@@ -104,6 +106,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
   const [previewFile, setPreviewFile] = useState<TaskFile | null>(null);
   const [editingFileId, setEditingFileId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [studentSearchQuery, setStudentSearchQuery] = useState("");
   const [editScore, setEditScore] = useState("");
   const [activeTab, setActiveTab] = useState<"grading" | "files">("grading");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -246,10 +249,14 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     }
   };
 
+  // Get duplicate name student IDs
+  const duplicateNameIds = useMemo(() => getDuplicateNameStudentIds(students), [students]);
+
   const getStudentName = (studentId?: string) => {
     if (!studentId) return null;
     const student = students.find(s => s.id === studentId);
-    return student?.name;
+    if (!student) return null;
+    return getStudentDisplayName(student, duplicateNameIds);
   };
 
   const getStudentGrade = (studentId: string) => {
@@ -289,7 +296,29 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Filter students for the grading tab search
+  const gradingFilteredStudents = students.filter(s =>
+    s.name.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+    (s.rollNumber && s.rollNumber.toLowerCase().includes(studentSearchQuery.toLowerCase()))
+  );
+
   const gradedCount = students.filter(s => getStudentGrade(s.id)).length;
+
+  // Bulk grade all visible students
+  const handleBulkGrade = async (score: number) => {
+    const ungradedStudents = gradingFilteredStudents.filter(s => !getStudentGrade(s.id));
+    if (ungradedStudents.length === 0) {
+      toast.info("All visible students are already graded");
+      return;
+    }
+
+    for (const student of ungradedStudents) {
+      await upsertGrade(student.id, task.id, score);
+    }
+    toast.success(`Graded ${ungradedStudents.length} students with ${score}/${task.maxScore}`);
+    loadData();
+    onDataChange?.();
+  };
 
   if (loading) {
     return (
@@ -338,12 +367,55 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
         <TabsContent value="grading">
           <Card className="border-none shadow-lg">
             <CardHeader>
-              <CardTitle className="text-card-foreground">
-                Grade Students
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Enter scores directly for each student. Files are optional.
-              </p>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <CardTitle className="text-card-foreground">
+                    Grade Students
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Enter scores directly for each student. Files are optional.
+                  </p>
+                </div>
+                <div className="flex gap-2 items-center">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <CheckCheck className="h-4 w-4" />
+                        <span className="hidden sm:inline">Bulk Grade</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 bg-popover" align="end">
+                      <div className="space-y-3">
+                        <p className="text-sm font-medium">Grade all ungraded students</p>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button size="sm" variant="outline" onClick={() => handleBulkGrade(task.maxScore)}>
+                            Full ({task.maxScore})
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleBulkGrade(Math.round(task.maxScore * 0.75))}>
+                            75%
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleBulkGrade(Math.round(task.maxScore * 0.5))}>
+                            50%
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleBulkGrade(0)}>
+                            Zero
+                          </Button>
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              {/* Search bar for students */}
+              <div className="relative mt-4">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search students by name or roll number..."
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               {students.length === 0 ? (
@@ -354,11 +426,17 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                     Add students to start grading
                   </p>
                 </div>
+              ) : gradingFilteredStudents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Search className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground">No students match your search</p>
+                </div>
               ) : (
                 <div className="space-y-2">
-                  {students.map((student) => {
+                  {gradingFilteredStudents.map((student) => {
                     const grade = getStudentGrade(student.id);
                     const studentFiles = files.filter(f => f.studentId === student.id);
+                    const displayName = getStudentDisplayName(student, duplicateNameIds);
                     return (
                       <div
                         key={student.id}
@@ -376,7 +454,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground truncate">{student.name}</p>
+                          <p className="font-medium text-foreground truncate">{displayName}</p>
                           {studentFiles.length > 0 && (
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
                               <Paperclip className="h-3 w-3" />

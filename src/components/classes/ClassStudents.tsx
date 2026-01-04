@@ -29,6 +29,7 @@ import {
   deleteStudent,
   Student,
 } from "@/lib/db";
+import { getDuplicateNameStudentIds, getStudentDisplayName, isDuplicateStudent } from "@/lib/studentUtils";
 
 interface ClassStudentsProps {
   classId: string;
@@ -78,6 +79,20 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
       return;
     }
 
+    // Check for duplicate
+    const duplicateCheck = isDuplicateStudent(
+      formData.name,
+      formData.rollNumber || undefined,
+      classId,
+      students,
+      editingStudent?.id
+    );
+
+    if (duplicateCheck.isDuplicate) {
+      toast.error(duplicateCheck.reason);
+      return;
+    }
+
     try {
       if (editingStudent) {
         await updateStudent({
@@ -107,6 +122,9 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
       toast.error("An error occurred");
     }
   };
+
+  // Get duplicate name student IDs
+  const duplicateNameIds = getDuplicateNameStudentIds(students);
 
   const handleEdit = (student: Student) => {
     setEditingStudent(student);
@@ -288,7 +306,7 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
                   )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-card-foreground truncate">
-                      {student.name}
+                      {getStudentDisplayName(student, duplicateNameIds)}
                     </h3>
                     {student.rollNumber && (
                       <p className="text-sm text-muted-foreground">
