@@ -41,7 +41,27 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Inline skeleton for faster LCP - hidden when React hydrates -->
+      <div id="app-skeleton" style="min-height:100vh;display:flex;background:#f1f1f3;font-family:system-ui,sans-serif;">
+        <div style="width:260px;background:#fafafa;padding:16px;border-right:1px solid #e5e5e5;">
+          <div style="height:40px;width:120px;background:#e8e6f0;border-radius:8px;margin-bottom:24px;"></div>
+          <div style="height:32px;background:#e8e6f0;border-radius:6px;margin-bottom:12px;"></div>
+          <div style="height:32px;background:#e8e6f0;border-radius:6px;margin-bottom:12px;"></div>
+          <div style="height:32px;background:#e8e6f0;border-radius:6px;"></div>
+        </div>
+        <div style="flex:1;padding:24px;">
+          <div style="height:56px;background:#fafafa;border-radius:12px;margin-bottom:24px;display:flex;align-items:center;padding:0 20px;">
+            <div style="height:32px;width:200px;background:#e8e6f0;border-radius:6px;"></div>
+          </div>
+          <div style="height:36px;width:180px;background:#e8e6f0;border-radius:8px;margin-bottom:16px;"></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+            <div style="height:120px;background:#fafafa;border-radius:12px;"></div>
+            <div style="height:120px;background:#fafafa;border-radius:12px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
