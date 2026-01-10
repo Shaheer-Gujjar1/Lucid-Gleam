@@ -223,11 +223,13 @@ export function AppSidebar() {
                 </Collapsible>
               ))}
               {institutes.length === 0 && !collapsed && (
-                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                  <Building2 className="h-8 w-8 text-muted-foreground/50 mb-2" />
-                  <p className="text-sm text-muted-foreground">No institutes yet</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">Add your first institute to get started</p>
-                </div>
+                <SidebarMenuItem>
+                  <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                    <Building2 className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                    <p className="text-sm text-muted-foreground">No institutes yet</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">Add your first institute to get started</p>
+                  </div>
+                </SidebarMenuItem>
               )}
             </SidebarMenu>
           </SidebarGroupContent>
