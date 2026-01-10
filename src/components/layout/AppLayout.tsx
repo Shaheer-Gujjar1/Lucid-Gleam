@@ -165,7 +165,7 @@ export function AppLayout() {
                 {/* Notifications Popover - Real Data */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-primary hover:bg-primary/10 relative transition-all duration-300">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 text-muted-foreground hover:text-primary hover:bg-primary/10 relative transition-all duration-300" aria-label="View notifications">
                       <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
                       {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-gradient-to-r from-destructive to-destructive/80 text-destructive-foreground text-[10px] sm:text-xs flex items-center justify-center font-medium animate-bounce-subtle shadow-lg shadow-destructive/30">
                           {unreadCount}
