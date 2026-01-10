@@ -18,7 +18,7 @@ All colors MUST be HSL.
     --popover-foreground: 240 5% 10%;
 
     --primary: 258 89% 66%;
-    --primary-foreground: 250 100% 97%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 240 5% 33%;
     --secondary-foreground: 0 0% 98%;
@@ -41,7 +41,7 @@ All colors MUST be HSL.
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5% 10%;
     --sidebar-primary: 258 89% 66%;
-    --sidebar-primary-foreground: 250 100% 97%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 269 100% 96%;
     --sidebar-accent-foreground: 258 89% 66%;
     --sidebar-border: 240 4% 83%;
