@@ -143,7 +143,7 @@ export function AppLayout() {
             <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
               <div className="flex items-center gap-2 sm:gap-4">
                 <SidebarTrigger className="text-muted-foreground hover:text-primary transition-colors duration-300" />
-                <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
+                <Link to="/" className="flex items-center gap-2 sm:gap-3 group" aria-label="Go to Lucid Gleam home page">
                   <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-gradient-to-br from-primary to-chart-2 text-primary-foreground shadow-lg group-hover:shadow-xl group-hover:shadow-primary/30 group-hover:scale-105 transition-all duration-300">
                     <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
