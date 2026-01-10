@@ -51,6 +51,16 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
     photo: "",
   });
 
+  // Check if roll number is required (when a student with same name exists)
+  const isRollNumberRequired = (() => {
+    if (!formData.name.trim()) return false;
+    const normalizedName = formData.name.toLowerCase().trim();
+    return students.some(s => 
+      s.name.toLowerCase().trim() === normalizedName && 
+      s.id !== editingStudent?.id
+    );
+  })();
+
   useEffect(() => {
     loadStudents();
   }, [classId]);
@@ -76,6 +86,12 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast.error("Please enter a student name");
+      return;
+    }
+
+    // Check if roll number is required but not provided
+    if (isRollNumberRequired && !formData.rollNumber.trim()) {
+      toast.error("Roll number is required when a student with the same name exists");
       return;
     }
 
@@ -249,7 +265,9 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="rollNumber">Roll Number (optional)</Label>
+                <Label htmlFor="rollNumber">
+                  Roll Number {isRollNumberRequired ? "*" : "(optional)"}
+                </Label>
                 <Input
                   id="rollNumber"
                   value={formData.rollNumber}
@@ -257,7 +275,13 @@ export function ClassStudents({ classId, onDataChange }: ClassStudentsProps) {
                     setFormData((prev) => ({ ...prev, rollNumber: e.target.value }))
                   }
                   placeholder="e.g. 101"
+                  required={isRollNumberRequired}
                 />
+                {isRollNumberRequired && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    A student with this name already exists. Roll number is required to differentiate.
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-end gap-2">
