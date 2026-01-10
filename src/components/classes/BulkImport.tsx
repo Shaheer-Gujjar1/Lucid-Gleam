@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { addStudent, getAllClasses, getAllInstitutes, Class, Institute } from "@/lib/db";
 import { Upload, FileSpreadsheet, Users, CheckCircle, XCircle, AlertCircle, Download, ChevronsUpDown, Check, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { z } from "zod";
 
 interface BulkImportProps {
   classId?: string;
@@ -31,9 +32,31 @@ interface BulkImportProps {
 interface ImportStudent {
   name: string;
   email?: string;
-  status: "pending" | "success" | "error";
+  status: "pending" | "success" | "error" | "invalid";
   error?: string;
 }
+
+// Validation schema for student data
+const studentSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name cannot be empty")
+    .max(100, "Name must be less than 100 characters")
+    .refine(
+      (val) => !/[<>{}[\]\\]/.test(val),
+      "Name contains invalid characters"
+    ),
+  email: z
+    .string()
+    .trim()
+    .email("Invalid email format")
+    .max(255, "Email must be less than 255 characters")
+    .optional()
+    .or(z.literal("")),
+});
+
+const MAX_IMPORT_SIZE = 500; // Maximum students per import
 
 export function BulkImport({ classId: initialClassId, onImportComplete }: BulkImportProps) {
   const [importData, setImportData] = useState<ImportStudent[]>([]);
@@ -57,23 +80,89 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
   const selectedClass = classes.find(c => c.id === selectedClassId);
   const getInstituteName = (instituteId: string) => institutes.find(i => i.id === instituteId)?.name || "";
 
+  const validateStudent = (name: string, email?: string): { valid: boolean; name: string; email?: string; error?: string } => {
+    const trimmedName = name.trim();
+    const trimmedEmail = email?.trim() || undefined;
+    
+    const result = studentSchema.safeParse({ 
+      name: trimmedName, 
+      email: trimmedEmail || "" 
+    });
+    
+    if (!result.success) {
+      const errors = result.error.errors.map(e => e.message).join(", ");
+      return { valid: false, name: trimmedName, email: trimmedEmail, error: errors };
+    }
+    
+    return { valid: true, name: trimmedName, email: trimmedEmail || undefined };
+  };
+
   const parseCSV = (content: string): ImportStudent[] => {
     const lines = content.trim().split("\n");
     const students: ImportStudent[] = [];
+    
+    // Check size limit
+    if (lines.length > MAX_IMPORT_SIZE + 1) {
+      toast.error(`Maximum ${MAX_IMPORT_SIZE} students allowed per import`);
+      return [];
+    }
+    
     lines.forEach((line, index) => {
+      // Skip header row
       if (index === 0 && (line.toLowerCase().includes("name") || line.toLowerCase().includes("email"))) return;
-      const values = line.split(",").map((v) => v.trim().replace(/"/g, ""));
-      if (values[0]) students.push({ name: values[0], email: values[1] || undefined, status: "pending" });
+      
+      // Parse CSV values, handling quoted values properly
+      const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      
+      if (!values[0]?.trim()) return; // Skip empty rows
+      
+      const validation = validateStudent(values[0], values[1]);
+      
+      if (validation.valid) {
+        students.push({ 
+          name: validation.name, 
+          email: validation.email, 
+          status: "pending" 
+        });
+      } else {
+        students.push({ 
+          name: validation.name || `Row ${index + 1}`, 
+          email: validation.email, 
+          status: "invalid",
+          error: validation.error
+        });
+      }
     });
+    
     return students;
   };
 
   const parseText = (text: string): ImportStudent[] => {
-    return text.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0).map((line) => {
+    const lines = text.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+    
+    // Check size limit
+    if (lines.length > MAX_IMPORT_SIZE) {
+      toast.error(`Maximum ${MAX_IMPORT_SIZE} students allowed per import`);
+      return [];
+    }
+    
+    return lines.map((line) => {
       const emailMatch = line.match(/[\w.-]+@[\w.-]+\.\w+/);
       const email = emailMatch ? emailMatch[0] : undefined;
       const name = email ? line.replace(email, "").trim().replace(/[,;]/, "").trim() : line;
-      return { name: name || line, email, status: "pending" as const };
+      
+      const validation = validateStudent(name || line, email);
+      
+      if (validation.valid) {
+        return { name: validation.name, email: validation.email, status: "pending" as const };
+      } else {
+        return { 
+          name: validation.name || line, 
+          email: validation.email, 
+          status: "invalid" as const,
+          error: validation.error
+        };
+      }
     });
   };
 
@@ -100,15 +189,36 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
     const targetClassId = initialClassId || selectedClassId;
     if (!targetClassId) { toast.error("Please select a class first"); return; }
     if (importData.length === 0) { toast.error("No students to import"); return; }
+    
+    // Filter out invalid entries
+    const validStudents = importData.filter(s => s.status === "pending");
+    const invalidCount = importData.filter(s => s.status === "invalid").length;
+    
+    if (validStudents.length === 0) {
+      toast.error("No valid students to import. Please fix validation errors.");
+      return;
+    }
+    
+    if (invalidCount > 0) {
+      toast.warning(`Skipping ${invalidCount} invalid entries`);
+    }
+    
     setIsImporting(true);
     const updated = [...importData];
     let successCount = 0, errorCount = 0;
+    
     for (let i = 0; i < updated.length; i++) {
+      // Skip invalid entries
+      if (updated[i].status === "invalid") continue;
+      
       try {
         await addStudent({ classId: targetClassId, name: updated[i].name, email: updated[i].email });
         updated[i].status = "success";
         successCount++;
-      } catch { updated[i].status = "error"; errorCount++; }
+      } catch { 
+        updated[i].status = "error"; 
+        errorCount++; 
+      }
       setImportData([...updated]);
     }
     setIsImporting(false);
@@ -130,8 +240,12 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
   const getStatusIcon = (status: string) => {
     if (status === "success") return <CheckCircle className="h-4 w-4 text-chart-1" />;
     if (status === "error") return <XCircle className="h-4 w-4 text-destructive" />;
+    if (status === "invalid") return <XCircle className="h-4 w-4 text-amber-500" />;
     return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
   };
+  
+  const invalidCount = importData.filter(s => s.status === "invalid").length;
+  const validCount = importData.filter(s => s.status === "pending").length;
 
   return (
     <div className="space-y-6">
@@ -262,11 +376,30 @@ export function BulkImport({ classId: initialClassId, onImportComplete }: BulkIm
             </div>
           </CardHeader>
           <CardContent>
+            {invalidCount > 0 && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  ⚠️ {invalidCount} entries have validation errors and will be skipped. {validCount} valid entries will be imported.
+                </p>
+              </div>
+            )}
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {importData.map((student, index) => (
-                <div key={index} className="flex items-center justify-between rounded-lg bg-background p-3">
-                  <div className="flex items-center gap-3">{getStatusIcon(student.status)}<div><p className="font-medium text-foreground">{student.name}</p>{student.email && <p className="text-sm text-muted-foreground">{student.email}</p>}</div></div>
-                  <Badge variant={student.status === "success" ? "default" : student.status === "error" ? "destructive" : "secondary"}>{student.status}</Badge>
+                <div key={index} className={cn(
+                  "flex items-center justify-between rounded-lg bg-background p-3",
+                  student.status === "invalid" && "bg-amber-500/5 border border-amber-500/20"
+                )}>
+                  <div className="flex items-center gap-3">
+                    {getStatusIcon(student.status)}
+                    <div>
+                      <p className="font-medium text-foreground">{student.name}</p>
+                      {student.email && <p className="text-sm text-muted-foreground">{student.email}</p>}
+                      {student.error && <p className="text-xs text-amber-600 dark:text-amber-400">{student.error}</p>}
+                    </div>
+                  </div>
+                  <Badge variant={student.status === "success" ? "default" : student.status === "error" || student.status === "invalid" ? "destructive" : "secondary"}>
+                    {student.status}
+                  </Badge>
                 </div>
               ))}
             </div>
