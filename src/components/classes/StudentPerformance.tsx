@@ -54,16 +54,14 @@ export function StudentPerformance({ classId, initialStudentId }: StudentPerform
   const getStudentStats = (studentId: string) => {
     const studentGrades = grades.filter((g) => g.studentId === studentId);
     const studentAttendance = attendance.filter((a) => a.studentId === studentId);
-    // Only count tasks that have maxScore
-    const gradableTasks = tasks.filter(t => t.maxScore);
 
     if (studentGrades.length === 0) {
-      return { average: 0, completed: 0, total: gradableTasks.length, attendance: 0, trend: "stable" as const };
+      return { average: 0, completed: 0, total: tasks.length, attendance: 0, trend: "stable" as const };
     }
 
     const percentages = studentGrades.map((g) => {
       const task = tasks.find((t) => t.id === g.taskId);
-      return task && task.maxScore ? (g.score / task.maxScore) * 100 : 0;
+      return task ? (g.score / task.maxScore) * 100 : 0;
     }).filter(p => p > 0);
 
     const average = percentages.reduce((a, b) => a + b, 0) / percentages.length;
@@ -81,17 +79,16 @@ export function StudentPerformance({ classId, initialStudentId }: StudentPerform
     return { 
       average: Math.round(average), 
       completed: studentGrades.length, 
-      total: gradableTasks.length,
+      total: tasks.length,
       attendance: Math.round(attendanceRate),
       trend
     };
   };
 
   const getTaskPerformance = (studentId: string) => {
-    // Only show tasks with maxScore for performance tracking
-    return tasks.filter(t => t.maxScore).map((task) => {
+    return tasks.map((task) => {
       const grade = grades.find((g) => g.taskId === task.id && g.studentId === studentId);
-      const percentage = grade && task.maxScore ? (grade.score / task.maxScore) * 100 : null;
+      const percentage = grade ? (grade.score / task.maxScore) * 100 : null;
       return {
         name: task.title.substring(0, 15),
         score: percentage !== null ? Math.round(percentage) : null,
@@ -103,7 +100,7 @@ export function StudentPerformance({ classId, initialStudentId }: StudentPerform
   const getRadarData = (studentId: string) => {
     const taskTypes = ["assignment", "quiz", "presentation", "project", "other"];
     return taskTypes.map((type) => {
-      const typeTasks = tasks.filter((t) => t.type === type && t.maxScore);
+      const typeTasks = tasks.filter((t) => t.type === type);
       const typeGrades = grades.filter(
         (g) => g.studentId === studentId && typeTasks.some((t) => t.id === g.taskId)
       );
@@ -112,7 +109,7 @@ export function StudentPerformance({ classId, initialStudentId }: StudentPerform
 
       const avg = typeGrades.reduce((sum, g) => {
         const task = tasks.find((t) => t.id === g.taskId);
-        return task && task.maxScore ? sum + (g.score / task.maxScore) * 100 : sum;
+        return task ? sum + (g.score / task.maxScore) * 100 : sum;
       }, 0) / typeGrades.length;
 
       return { subject: type.charAt(0).toUpperCase() + type.slice(1), A: Math.round(avg), fullMark: 100 };
@@ -311,15 +308,18 @@ export function StudentPerformance({ classId, initialStudentId }: StudentPerform
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {tasks.filter(t => t.maxScore).map((task) => {
+                {tasks.map((task) => {
                   const grade = grades.find((g) => g.taskId === task.id && g.studentId === selectedStudent);
-                  const percentage = grade && task.maxScore ? Math.round((grade.score / task.maxScore) * 100) : null;
+                  const percentage = grade ? Math.round((grade.score / task.maxScore) * 100) : null;
 
                   return (
                     <div key={task.id} className="flex items-center justify-between rounded-lg bg-background p-4">
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="capitalize">{task.type}</Badge>
                         <span className="font-medium text-foreground">{task.title}</span>
+                        {!task.includeInMarksSheet && (
+                          <Badge variant="secondary" className="text-xs">Practice</Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3">
                         {percentage !== null ? (
