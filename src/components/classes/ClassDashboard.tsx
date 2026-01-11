@@ -150,14 +150,14 @@ export function ClassDashboard({ classId }: ClassDashboardProps) {
               projects: "project"
             };
             const taskType = typeMap[column.autoSource];
-            const typeTasks = tasksData.filter(t => t.type === taskType);
+            const typeTasks = tasksData.filter(t => t.type === taskType && t.includeInMarksSheet !== false && t.maxScore);
             if (typeTasks.length === 0) return 0;
             const studentGrades = gradesData.filter(g => 
               g.studentId === studentId && 
               typeTasks.some(t => t.id === g.taskId)
             );
             if (studentGrades.length === 0) return 0;
-            const totalMax = typeTasks.reduce((sum, t) => sum + t.maxScore, 0);
+            const totalMax = typeTasks.reduce((sum, t) => sum + (t.maxScore || 0), 0);
             const totalScore = studentGrades.reduce((sum, g) => {
               const task = typeTasks.find(t => t.id === g.taskId);
               return sum + (g.score / (task?.maxScore || 1)) * (task?.maxScore || 0);
@@ -209,13 +209,16 @@ export function ClassDashboard({ classId }: ClassDashboardProps) {
   }, [classId]);
 
   const calculateAverageScore = () => {
-    if (grades.length === 0 || tasks.length === 0) return 0;
-    const totalPercentage = grades.reduce((sum, grade) => {
-      const task = tasks.find((t) => t.id === grade.taskId);
-      if (!task) return sum;
+    // Only include tasks with maxScore and includeInMarksSheet
+    const gradableTasks = tasks.filter(t => t.maxScore && t.includeInMarksSheet !== false);
+    const relevantGrades = grades.filter(g => gradableTasks.some(t => t.id === g.taskId));
+    if (relevantGrades.length === 0 || gradableTasks.length === 0) return 0;
+    const totalPercentage = relevantGrades.reduce((sum, grade) => {
+      const task = gradableTasks.find((t) => t.id === grade.taskId);
+      if (!task || !task.maxScore) return sum;
       return sum + (grade.score / task.maxScore) * 100;
     }, 0);
-    return Math.round(totalPercentage / grades.length);
+    return Math.round(totalPercentage / relevantGrades.length);
   };
 
   const recentTasks = tasks
@@ -370,7 +373,7 @@ export function ClassDashboard({ classId }: ClassDashboardProps) {
                       <span className="font-medium text-foreground">{task.title}</span>
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      Max: {task.maxScore}
+                      {task.maxScore ? `Max: ${task.maxScore}` : 'No grade'}
                     </span>
                   </div>
                 ))}
