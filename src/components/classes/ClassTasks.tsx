@@ -28,11 +28,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal, Paperclip, Eye, Calculator } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Presentation, FlaskConical, FolderKanban, MoreHorizontal, Paperclip, Eye, Calculator, Users } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { getTasksByClass, addTask, updateTask, deleteTask, getFilesByTask, Task } from "@/lib/db";
+import { getTasksByClass, addTask, updateTask, deleteTask, getFilesByTask, getGradesByTask, Task } from "@/lib/db";
 import { TaskDetail } from "./TaskDetail";
+import { Badge } from "@/components/ui/badge";
 
 const taskTypes = [
   { value: "assignment", label: "Assignment", icon: FileText },
@@ -58,6 +59,8 @@ interface ClassTasksProps {
 export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [fileCounts, setFileCounts] = useState<Record<string, number>>({});
+  const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({});
+  const [studentCount, setStudentCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -69,7 +72,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
     title: "",
     type: "assignment" as Task["type"],
     description: "",
-    maxScore: "",
+    maxScore: "100",
     dueDate: "",
     includeInMarksSheet: true,
   });
@@ -82,12 +85,18 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
     const data = await getTasksByClass(classId);
     setTasks(data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     
-    const counts: Record<string, number> = {};
+    const fileCnts: Record<string, number> = {};
+    const gradeCnts: Record<string, number> = {};
     for (const task of data) {
-      const files = await getFilesByTask(task.id);
-      counts[task.id] = files.length;
+      const [files, grades] = await Promise.all([
+        getFilesByTask(task.id),
+        getGradesByTask(task.id)
+      ]);
+      fileCnts[task.id] = files.length;
+      gradeCnts[task.id] = grades.length;
     }
-    setFileCounts(counts);
+    setFileCounts(fileCnts);
+    setGradeCounts(gradeCnts);
     setLoading(false);
   }
 
@@ -98,9 +107,9 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
       return;
     }
 
-    const maxScore = formData.maxScore ? parseInt(formData.maxScore) : undefined;
-    if (formData.maxScore && (isNaN(maxScore!) || maxScore! <= 0)) {
-      toast.error("Please enter a valid max score or leave it empty");
+    const maxScore = parseInt(formData.maxScore);
+    if (isNaN(maxScore) || maxScore <= 0) {
+      toast.error("Please enter a valid max score");
       return;
     }
 
@@ -134,7 +143,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
         title: "",
         type: "assignment",
         description: "",
-        maxScore: "",
+        maxScore: "100",
         dueDate: "",
         includeInMarksSheet: true,
       });
@@ -151,7 +160,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
       title: task.title,
       type: task.type,
       description: task.description || "",
-      maxScore: task.maxScore?.toString() || "",
+      maxScore: task.maxScore.toString(),
       dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : "",
       includeInMarksSheet: task.includeInMarksSheet ?? true,
     });
@@ -216,7 +225,7 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
           setIsDialogOpen(open);
           if (!open) {
             setEditingTask(null);
-            setFormData({ title: "", type: "assignment", description: "", maxScore: "", dueDate: "", includeInMarksSheet: true });
+            setFormData({ title: "", type: "assignment", description: "", maxScore: "100", dueDate: "", includeInMarksSheet: true });
           }
         }}>
           <DialogTrigger asChild>
@@ -248,8 +257,8 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="maxScore">Max Score (optional)</Label>
-                <Input id="maxScore" type="number" min="1" value={formData.maxScore} onChange={(e) => setFormData((prev) => ({ ...prev, maxScore: e.target.value }))} placeholder="Leave empty for non-graded tasks" />
+                <Label htmlFor="maxScore">Max Score *</Label>
+                <Input id="maxScore" type="number" min="1" value={formData.maxScore} onChange={(e) => setFormData((prev) => ({ ...prev, maxScore: e.target.value }))} placeholder="e.g., 100" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dueDate">Due Date (optional)</Label>
@@ -261,7 +270,11 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
                     <Calculator className="h-4 w-4" />
                     Include in Marks Sheet
                   </Label>
-                  <p className="text-xs text-muted-foreground">Auto-calculate this task's grades in the marks sheet</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formData.includeInMarksSheet 
+                      ? "This task's grades will count toward the marks sheet" 
+                      : "Practice/extra task - grades won't affect marks sheet"}
+                  </p>
                 </div>
                 <Switch 
                   id="includeInMarksSheet" 
@@ -303,22 +316,27 @@ export function ClassTasks({ classId, onDataChange }: ClassTasksProps) {
                         <p className="text-sm capitalize text-muted-foreground">{task.type}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {task.includeInMarksSheet && (
-                        <span title="Included in marks sheet" className="text-primary">
-                          <Calculator className="h-4 w-4" />
-                        </span>
-                      )}
-                      {task.maxScore ? (
-                        <span className="rounded-full bg-background px-3 py-1 text-sm font-medium text-foreground">{task.maxScore} pts</span>
-                      ) : (
-                        <span className="rounded-full bg-muted px-3 py-1 text-sm text-muted-foreground">No grade</span>
-                      )}
-                    </div>
+                    <span className="rounded-full bg-background px-3 py-1 text-sm font-medium text-foreground">{task.maxScore} pts</span>
                   </div>
                   {task.description && <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{task.description}</p>}
                   {task.dueDate && <p className="mt-2 text-xs text-muted-foreground">Due: {new Date(task.dueDate).toLocaleDateString()}</p>}
-                  <div className="mt-4 flex justify-between items-center">
+                  <div className="mt-4 flex items-center gap-3 flex-wrap">
+                    {gradeCounts[task.id] > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Users className="h-3 w-3" />
+                        {gradeCounts[task.id]} graded
+                      </Badge>
+                    )}
+                    {!task.includeInMarksSheet && (
+                      <Badge variant="outline" className="text-xs">
+                        Practice
+                      </Badge>
+                    )}
+                    {task.includeInMarksSheet && (
+                      <span title="Included in marks sheet" className="text-primary">
+                        <Calculator className="h-4 w-4" />
+                      </span>
+                    )}
                     {fileCounts[task.id] > 0 && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Paperclip className="h-3 w-3" />

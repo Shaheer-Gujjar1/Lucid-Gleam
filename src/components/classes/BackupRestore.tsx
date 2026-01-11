@@ -169,6 +169,7 @@ export function BackupRestore() {
             description: task.description,
             maxScore: task.maxScore,
             dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+            includeInMarksSheet: task.includeInMarksSheet ?? true,
           });
           idMap.set(task.id, newTask.id);
           stats.tasks++;
