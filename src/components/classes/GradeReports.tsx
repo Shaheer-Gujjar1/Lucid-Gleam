@@ -120,12 +120,19 @@ export function GradeReports({ classId }: GradeReportsProps) {
 
   const calculateStats = () => {
     const filteredGrades = getFilteredGrades();
-    if (filteredGrades.length === 0) return { avg: 0, highest: 0, lowest: 0, passing: 0 };
-
-    const percentages = filteredGrades.map((g) => {
-      const task = tasks.find((t) => t.id === g.taskId);
-      return task ? (g.score / task.maxScore) * 100 : 0;
+    // Only calculate stats for tasks with maxScore
+    const validGrades = filteredGrades.filter(g => {
+      const task = tasks.find(t => t.id === g.taskId);
+      return task && task.maxScore;
     });
+    if (validGrades.length === 0) return { avg: 0, highest: 0, lowest: 0, passing: 0 };
+
+    const percentages = validGrades.map((g) => {
+      const task = tasks.find((t) => t.id === g.taskId);
+      return task && task.maxScore ? (g.score / task.maxScore) * 100 : 0;
+    }).filter(p => p > 0);
+
+    if (percentages.length === 0) return { avg: 0, highest: 0, lowest: 0, passing: 0 };
 
     const avg = percentages.reduce((a, b) => a + b, 0) / percentages.length;
     const highest = Math.max(...percentages);
@@ -141,7 +148,7 @@ export function GradeReports({ classId }: GradeReportsProps) {
 
     filteredGrades.forEach((g) => {
       const task = tasks.find((t) => t.id === g.taskId);
-      if (!task) return;
+      if (!task || !task.maxScore) return;
       const percentage = (g.score / task.maxScore) * 100;
 
       if (percentage >= 90) distribution.A++;
@@ -160,23 +167,28 @@ export function GradeReports({ classId }: GradeReportsProps) {
   const getStudentPerformance = () => {
     return students.map((student) => {
       const studentGrades = getFilteredGrades().filter((g) => g.studentId === student.id);
-      if (studentGrades.length === 0) return { name: student.name.split(" ")[0], average: 0 };
+      const validGrades = studentGrades.filter(g => {
+        const task = tasks.find(t => t.id === g.taskId);
+        return task && task.maxScore;
+      });
+      if (validGrades.length === 0) return { name: student.name.split(" ")[0], average: 0 };
 
-      const avg = studentGrades.reduce((sum, g) => {
+      const avg = validGrades.reduce((sum, g) => {
         const task = tasks.find((t) => t.id === g.taskId);
-        return task ? sum + (g.score / task.maxScore) * 100 : sum;
-      }, 0) / studentGrades.length;
+        return task && task.maxScore ? sum + (g.score / task.maxScore) * 100 : sum;
+      }, 0) / validGrades.length;
 
       return { name: student.name.split(" ")[0], average: Math.round(avg) };
     }).sort((a, b) => b.average - a.average);
   };
 
   const getTaskTrends = () => {
-    return tasks.map((task) => {
+    // Only show tasks with maxScore
+    return tasks.filter(t => t.maxScore).map((task) => {
       const taskGrades = grades.filter((g) => g.taskId === task.id);
-      if (taskGrades.length === 0) return { name: task.title.substring(0, 10), average: 0 };
+      if (taskGrades.length === 0 || !task.maxScore) return { name: task.title.substring(0, 10), average: 0 };
 
-      const avg = taskGrades.reduce((sum, g) => sum + (g.score / task.maxScore) * 100, 0) / taskGrades.length;
+      const avg = taskGrades.reduce((sum, g) => sum + (g.score / task.maxScore!) * 100, 0) / taskGrades.length;
       return { name: task.title.substring(0, 10), average: Math.round(avg) };
     });
   };

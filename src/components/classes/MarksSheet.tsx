@@ -210,14 +210,14 @@ export function MarksSheet({ classId }: MarksSheetProps) {
         return Math.round((avg / 5) * column.maxMarks * 10) / 10;
       }
       case "assignments": {
-        const assignmentTasks = tasks.filter(t => t.type === "assignment");
+        const assignmentTasks = tasks.filter(t => t.type === "assignment" && t.includeInMarksSheet !== false && t.maxScore);
         if (assignmentTasks.length === 0) return 0;
         const studentGrades = grades.filter(g => 
           g.studentId === studentId && 
           assignmentTasks.some(t => t.id === g.taskId)
         );
         if (studentGrades.length === 0) return 0;
-        const totalMax = assignmentTasks.reduce((sum, t) => sum + t.maxScore, 0);
+        const totalMax = assignmentTasks.reduce((sum, t) => sum + (t.maxScore || 0), 0);
         const totalScore = studentGrades.reduce((sum, g) => {
           const task = assignmentTasks.find(t => t.id === g.taskId);
           return sum + (g.score / (task?.maxScore || 1)) * (task?.maxScore || 0);
@@ -225,14 +225,14 @@ export function MarksSheet({ classId }: MarksSheetProps) {
         return Math.round((totalScore / totalMax) * column.maxMarks * 10) / 10;
       }
       case "quizzes": {
-        const quizTasks = tasks.filter(t => t.type === "quiz");
+        const quizTasks = tasks.filter(t => t.type === "quiz" && t.includeInMarksSheet !== false && t.maxScore);
         if (quizTasks.length === 0) return 0;
         const studentGrades = grades.filter(g => 
           g.studentId === studentId && 
           quizTasks.some(t => t.id === g.taskId)
         );
         if (studentGrades.length === 0) return 0;
-        const totalMax = quizTasks.reduce((sum, t) => sum + t.maxScore, 0);
+        const totalMax = quizTasks.reduce((sum, t) => sum + (t.maxScore || 0), 0);
         const totalScore = studentGrades.reduce((sum, g) => {
           const task = quizTasks.find(t => t.id === g.taskId);
           return sum + (g.score / (task?.maxScore || 1)) * (task?.maxScore || 0);
@@ -240,14 +240,14 @@ export function MarksSheet({ classId }: MarksSheetProps) {
         return Math.round((totalScore / totalMax) * column.maxMarks * 10) / 10;
       }
       case "presentations": {
-        const presTasks = tasks.filter(t => t.type === "presentation");
+        const presTasks = tasks.filter(t => t.type === "presentation" && t.includeInMarksSheet !== false && t.maxScore);
         if (presTasks.length === 0) return 0;
         const studentGrades = grades.filter(g => 
           g.studentId === studentId && 
           presTasks.some(t => t.id === g.taskId)
         );
         if (studentGrades.length === 0) return 0;
-        const totalMax = presTasks.reduce((sum, t) => sum + t.maxScore, 0);
+        const totalMax = presTasks.reduce((sum, t) => sum + (t.maxScore || 0), 0);
         const totalScore = studentGrades.reduce((sum, g) => {
           const task = presTasks.find(t => t.id === g.taskId);
           return sum + (g.score / (task?.maxScore || 1)) * (task?.maxScore || 0);
@@ -255,14 +255,14 @@ export function MarksSheet({ classId }: MarksSheetProps) {
         return Math.round((totalScore / totalMax) * column.maxMarks * 10) / 10;
       }
       case "projects": {
-        const projectTasks = tasks.filter(t => t.type === "project");
+        const projectTasks = tasks.filter(t => t.type === "project" && t.includeInMarksSheet !== false && t.maxScore);
         if (projectTasks.length === 0) return 0;
         const studentGrades = grades.filter(g => 
           g.studentId === studentId && 
           projectTasks.some(t => t.id === g.taskId)
         );
         if (studentGrades.length === 0) return 0;
-        const totalMax = projectTasks.reduce((sum, t) => sum + t.maxScore, 0);
+        const totalMax = projectTasks.reduce((sum, t) => sum + (t.maxScore || 0), 0);
         const totalScore = studentGrades.reduce((sum, g) => {
           const task = projectTasks.find(t => t.id === g.taskId);
           return sum + (g.score / (task?.maxScore || 1)) * (task?.maxScore || 0);

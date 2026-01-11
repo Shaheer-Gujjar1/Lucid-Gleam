@@ -227,7 +227,7 @@ export function TaskDetail({ task, classId, onBack, onDataChange }: TaskDetailPr
 
   const handleSaveScore = async (file: TaskFile, scoreValue: string) => {
     const score = scoreValue ? parseFloat(scoreValue) : undefined;
-    if (scoreValue && (isNaN(score!) || score! < 0 || score! > task.maxScore)) {
+    if (scoreValue && task.maxScore && (isNaN(score!) || score! < 0 || score! > task.maxScore)) {
       toast.error(`Score must be between 0 and ${task.maxScore}`);
       return;
     }

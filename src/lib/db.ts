@@ -47,8 +47,9 @@ export interface Task {
   title: string;
   type: 'assignment' | 'quiz' | 'presentation' | 'project' | 'other';
   description?: string;
-  maxScore: number;
+  maxScore?: number; // Optional - tasks without grades don't need this
   dueDate?: Date;
+  includeInMarksSheet?: boolean; // Toggle for auto-calculation in marks sheet
   createdAt: Date;
 }
 
