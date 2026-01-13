@@ -13,7 +13,7 @@ import { useState, useEffect } from "react";
 import { getAllClasses, getAllStudents, getAllTasks, Task, Class } from "@/lib/db";
 import { subscribeToDataChanges } from "@/lib/dataEvents";
 import { differenceInDays, isPast, isToday, isTomorrow, format } from "date-fns";
-import { getDismissedNotifications, dismissAllNotifications, isNotificationDismissed } from "@/lib/notificationStore";
+import { getDismissedNotifications, dismissAllNotifications, dismissNotification } from "@/lib/notificationStore";
 import { toast } from "sonner";
 
 interface NotificationItem {
@@ -193,6 +193,12 @@ export function AppLayout() {
                       </div>
                       {notifications.length === 0 ? <p className="text-sm text-muted-foreground py-4 text-center">No upcoming deadlines</p> : <div className="space-y-2 max-h-80 overflow-y-auto">
                           {notifications.map(notification => <div key={notification.id} className={`flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${notification.isRead ? 'opacity-60' : ''}`} onClick={() => {
+                        // Mark this specific notification as read
+                        if (!notification.isRead) {
+                          dismissNotification(notification.id);
+                          setDismissedIds(getDismissedNotifications());
+                          setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
+                        }
                         const cls = classes.find(c => c.id === notification.classId);
                         if (cls) {
                           navigate(`/institute/${cls.instituteId}/class/${cls.id}?tab=tasks&taskId=${notification.id}`);
@@ -247,7 +253,7 @@ export function AppLayout() {
             {students.slice(0, 5).map(student => <CommandItem key={student.id} onSelect={() => {
             const cls = classes.find(c => c.id === student.classId);
             if (cls) {
-              navigate(`/institute/${cls.instituteId}/class/${cls.id}?tab=performance&studentId=${student.id}`);
+              navigate(`/institute/${cls.instituteId}/class/${cls.id}?tab=analytics&studentId=${student.id}`);
             }
             setSearchOpen(false);
           }}>

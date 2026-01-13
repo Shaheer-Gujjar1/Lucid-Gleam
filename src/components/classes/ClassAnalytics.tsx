@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend } from "recharts";
 import { getStudentsByClass, getTasksByClass, getAllGrades, getAttendanceByClass, getBehaviourByClass, getClass, Student, Task, Grade, Attendance, Behaviour, BehaviourRating, Class, ClassSubject } from "@/lib/db";
-import { TrendingUp, TrendingDown, Target, Award, Calendar, UserCheck, BookOpen, Users, BarChart3, ArrowUpRight, ArrowDownRight, Minus, Heart } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, Award, Calendar, UserCheck, BookOpen, Users, BarChart3, ArrowUpRight, ArrowDownRight, Minus, Heart, User } from "lucide-react";
 import { startOfDay, subDays, subMonths, subYears, parseISO, isSameDay, isAfter } from "date-fns";
 import { StudentSearchCombobox } from "./StudentSearchCombobox";
 
-interface GradeReportsProps {
+interface ClassAnalyticsProps {
   classId: string;
+  initialStudentId?: string;
 }
 
 const RATING_VALUES: Record<BehaviourRating, number> = {
@@ -42,7 +44,7 @@ const PIE_COLORS = [
 
 type BehaviourPeriod = "7days" | "30days" | "all";
 
-export function GradeReports({ classId }: GradeReportsProps) {
+export function ClassAnalytics({ classId, initialStudentId }: ClassAnalyticsProps) {
   const [classData, setClassData] = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -55,7 +57,8 @@ export function GradeReports({ classId }: GradeReportsProps) {
   const [attendancePeriod, setAttendancePeriod] = useState<string>("this_month");
   const [behaviourPeriod, setBehaviourPeriod] = useState<BehaviourPeriod>("30days");
   const [selectedBehaviourStudent, setSelectedBehaviourStudent] = useState<string | null>(null);
-  const [reportTab, setReportTab] = useState<string>("grades");
+  const [selectedPerformanceStudent, setSelectedPerformanceStudent] = useState<string>("");
+  const [reportTab, setReportTab] = useState<string>(initialStudentId ? "student" : "grades");
 
   const subjects = classData?.subjects || [];
 
@@ -95,6 +98,11 @@ export function GradeReports({ classId }: GradeReportsProps) {
       
       if (sortedStudents.length > 0) {
         setSelectedBehaviourStudent(sortedStudents[0].id);
+        // Use initialStudentId if provided and valid, otherwise use first student
+        const targetStudent = initialStudentId && sortedStudents.some(st => st.id === initialStudentId) 
+          ? initialStudentId 
+          : sortedStudents[0].id;
+        setSelectedPerformanceStudent(targetStudent);
       }
       
       setLoading(false);
@@ -375,6 +383,82 @@ export function GradeReports({ classId }: GradeReportsProps) {
     return { label: "Poor", color: "text-destructive" };
   };
 
+  // ========== STUDENT PERFORMANCE LOGIC ==========
+  const getStudentPerformanceStats = (studentId: string) => {
+    const studentGrades = grades.filter((g) => g.studentId === studentId);
+    const studentAttendance = attendance.filter((a) => a.studentId === studentId);
+
+    if (studentGrades.length === 0) {
+      return { average: 0, completed: 0, total: tasks.length, attendanceRate: 0, trend: "stable" as const };
+    }
+
+    const percentages = studentGrades.map((g) => {
+      const task = tasks.find((t) => t.id === g.taskId);
+      return task ? (g.score / task.maxScore) * 100 : 0;
+    }).filter(p => p > 0);
+
+    const average = percentages.reduce((a, b) => a + b, 0) / percentages.length;
+    const presentDays = studentAttendance.filter((a) => a.status === "present" || a.status === "late").length;
+    const attendanceRate = studentAttendance.length > 0 ? (presentDays / studentAttendance.length) * 100 : 100;
+
+    let trend: "up" | "down" | "stable" = "stable";
+    if (percentages.length >= 2) {
+      const recent = percentages.slice(-2);
+      if (recent[1] > recent[0] + 5) trend = "up";
+      else if (recent[1] < recent[0] - 5) trend = "down";
+    }
+
+    return { 
+      average: Math.round(average), 
+      completed: studentGrades.length, 
+      total: tasks.length,
+      attendanceRate: Math.round(attendanceRate),
+      trend
+    };
+  };
+
+  const getStudentTaskPerformance = (studentId: string) => {
+    return tasks.map((task) => {
+      const grade = grades.find((g) => g.taskId === task.id && g.studentId === studentId);
+      const percentage = grade ? (grade.score / task.maxScore) * 100 : null;
+      return {
+        name: task.title.substring(0, 15),
+        score: percentage !== null ? Math.round(percentage) : null,
+        type: task.type,
+      };
+    });
+  };
+
+  const getStudentRadarData = (studentId: string) => {
+    const taskTypes = ["assignment", "quiz", "presentation", "project", "other"];
+    return taskTypes.map((type) => {
+      const typeTasks = tasks.filter((t) => t.type === type);
+      const typeGrades = grades.filter(
+        (g) => g.studentId === studentId && typeTasks.some((t) => t.id === g.taskId)
+      );
+
+      if (typeGrades.length === 0) return { subject: type, A: 0, fullMark: 100 };
+
+      const avg = typeGrades.reduce((sum, g) => {
+        const task = tasks.find((t) => t.id === g.taskId);
+        return task ? sum + (g.score / task.maxScore) * 100 : sum;
+      }, 0) / typeGrades.length;
+
+      return { subject: type.charAt(0).toUpperCase() + type.slice(1), A: Math.round(avg), fullMark: 100 };
+    });
+  };
+
+  const getGradeLabel = (percentage: number) => {
+    if (percentage >= 90) return { grade: "A", color: "bg-chart-1/20 text-chart-1" };
+    if (percentage >= 80) return { grade: "B", color: "bg-chart-2/20 text-chart-2" };
+    if (percentage >= 70) return { grade: "C", color: "bg-chart-3/20 text-chart-3" };
+    if (percentage >= 60) return { grade: "D", color: "bg-chart-4/20 text-chart-4" };
+    return { grade: "F", color: "bg-destructive/20 text-destructive" };
+  };
+
+  const selectedPerformanceStudentData = students.find((s) => s.id === selectedPerformanceStudent);
+  const studentStats = selectedPerformanceStudent ? getStudentPerformanceStats(selectedPerformanceStudent) : null;
+
   const stats = calculateStats();
   const attStats = getAttendanceStats();
   const COLORS = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))"];
@@ -394,6 +478,10 @@ export function GradeReports({ classId }: GradeReportsProps) {
           <TabsTrigger value="grades" className="gap-2 px-4 py-2">
             <Award className="h-4 w-4" />
             <span>Grades</span>
+          </TabsTrigger>
+          <TabsTrigger value="student" className="gap-2 px-4 py-2">
+            <User className="h-4 w-4" />
+            <span>Student</span>
           </TabsTrigger>
           <TabsTrigger value="attendance" className="gap-2 px-4 py-2">
             <Calendar className="h-4 w-4" />
@@ -555,6 +643,217 @@ export function GradeReports({ classId }: GradeReportsProps) {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* STUDENT PERFORMANCE TAB */}
+        <TabsContent value="student" className="mt-6">
+          {students.length === 0 ? (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <User className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-lg text-muted-foreground">No students yet. Add students to track their performance!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-foreground">Student Performance</h2>
+                <StudentSearchCombobox
+                  students={students}
+                  value={selectedPerformanceStudent}
+                  onValueChange={setSelectedPerformanceStudent}
+                  placeholder="Select a student"
+                  className="w-64"
+                />
+              </div>
+
+              {selectedPerformanceStudentData && studentStats && (
+                <>
+                  <Card className="border-none shadow-lg">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-6">
+                        {selectedPerformanceStudentData.photo ? (
+                          <img
+                            src={selectedPerformanceStudentData.photo}
+                            alt={selectedPerformanceStudentData.name}
+                            className="h-20 w-20 rounded-full object-cover ring-4 ring-primary/20"
+                          />
+                        ) : (
+                          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground">
+                            {selectedPerformanceStudentData.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <h3 className="text-2xl font-bold text-card-foreground">{selectedPerformanceStudentData.name}</h3>
+                          {selectedPerformanceStudentData.email && (
+                            <p className="text-muted-foreground">{selectedPerformanceStudentData.email}</p>
+                          )}
+                          <div className="mt-2 flex items-center gap-2">
+                            {studentStats.average > 0 && (
+                              <Badge className={getGradeLabel(studentStats.average).color}>
+                                Grade {getGradeLabel(studentStats.average).grade}
+                              </Badge>
+                            )}
+                            {studentStats.trend === "up" && (
+                              <Badge variant="outline" className="gap-1 text-chart-1 border-chart-1">
+                                <TrendingUp className="h-3 w-3" /> Improving
+                              </Badge>
+                            )}
+                            {studentStats.trend === "down" && (
+                              <Badge variant="outline" className="gap-1 text-destructive border-destructive">
+                                <TrendingDown className="h-3 w-3" /> Needs Attention
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <Card className="border-none shadow-lg">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Average Score</CardTitle>
+                        <Target className="h-5 w-5 text-primary" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-card-foreground">{studentStats.average}%</div>
+                        <Progress value={studentStats.average} className="mt-2" />
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-lg">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Tasks Completed</CardTitle>
+                        <BookOpen className="h-5 w-5 text-chart-2" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-card-foreground">
+                          {studentStats.completed}/{studentStats.total}
+                        </div>
+                        <Progress value={(studentStats.completed / Math.max(studentStats.total, 1)) * 100} className="mt-2" />
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-lg">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Attendance</CardTitle>
+                        <Calendar className="h-5 w-5 text-chart-3" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-card-foreground">{studentStats.attendanceRate}%</div>
+                        <Progress value={studentStats.attendanceRate} className="mt-2" />
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-lg">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Class Rank</CardTitle>
+                        <Award className="h-5 w-5 text-chart-4" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-card-foreground">
+                          #{students
+                            .map((s) => ({ id: s.id, avg: getStudentPerformanceStats(s.id).average }))
+                            .sort((a, b) => b.avg - a.avg)
+                            .findIndex((s) => s.id === selectedPerformanceStudent) + 1}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">of {students.length} students</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <Card className="border-none shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="text-card-foreground">Score Trend</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={getStudentTaskPerformance(selectedPerformanceStudent).filter((t) => t.score !== null)}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                            <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: "hsl(var(--card))", 
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "8px"
+                              }} 
+                            />
+                            <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: "hsl(var(--primary))" }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-none shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="text-card-foreground">Performance by Type</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <RadarChart data={getStudentRadarData(selectedPerformanceStudent)}>
+                            <PolarGrid stroke="hsl(var(--border))" />
+                            <PolarAngleAxis dataKey="subject" stroke="hsl(var(--muted-foreground))" />
+                            <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
+                            <Radar name="Score" dataKey="A" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                            <Tooltip 
+                              contentStyle={{ 
+                                backgroundColor: "hsl(var(--card))", 
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "8px"
+                              }} 
+                            />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card className="border-none shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-card-foreground">All Tasks</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {tasks.map((task) => {
+                          const grade = grades.find((g) => g.taskId === task.id && g.studentId === selectedPerformanceStudent);
+                          const percentage = grade ? Math.round((grade.score / task.maxScore) * 100) : null;
+
+                          return (
+                            <div key={task.id} className="flex items-center justify-between rounded-lg bg-background p-4">
+                              <div className="flex items-center gap-3">
+                                <Badge variant="outline" className="capitalize">{task.type}</Badge>
+                                <span className="font-medium text-foreground">{task.title}</span>
+                                {!task.includeInMarksSheet && (
+                                  <Badge variant="secondary" className="text-xs">Practice</Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                {percentage !== null ? (
+                                  <>
+                                    <span className="text-muted-foreground">
+                                      {grade?.score}/{task.maxScore}
+                                    </span>
+                                    <Badge className={getGradeLabel(percentage).color}>
+                                      {percentage}%
+                                    </Badge>
+                                  </>
+                                ) : (
+                                  <Badge variant="secondary">Not Graded</Badge>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
           )}
         </TabsContent>
