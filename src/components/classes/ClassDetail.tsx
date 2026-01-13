@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, UserCheck, Grid3X3, Settings2, Heart, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Users, ClipboardList, Calendar, LayoutDashboard, BookOpen, BarChart3, Grid3X3, Settings2, Heart, FileSpreadsheet } from "lucide-react";
 import { Class, Institute } from "@/lib/db";
 import { ClassDashboard } from "./ClassDashboard";
 import { ClassStudents } from "./ClassStudents";
@@ -10,8 +10,7 @@ import { ClassTasks } from "./ClassTasks";
 import { ClassAttendance } from "./ClassAttendance";
 import { ClassSchedule } from "./ClassSchedule";
 import { ClassBehaviour } from "./ClassBehaviour";
-import { GradeReports } from "./GradeReports";
-import { StudentPerformance } from "./StudentPerformance";
+import { ClassAnalytics } from "./ClassAnalytics";
 import { SeatingChart } from "./SeatingChart";
 import { MarksSheet } from "./MarksSheet";
 import { Badge } from "@/components/ui/badge";
@@ -76,11 +75,8 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
               <TabsTrigger value="tasks" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <ClipboardList className="h-4 w-4 shrink-0" /><span>Tasks</span>
               </TabsTrigger>
-              <TabsTrigger value="grades" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <BarChart3 className="h-4 w-4 shrink-0" /><span>Reports</span>
-              </TabsTrigger>
-              <TabsTrigger value="performance" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                <UserCheck className="h-4 w-4 shrink-0" /><span>Performance</span>
+              <TabsTrigger value="analytics" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <BarChart3 className="h-4 w-4 shrink-0" /><span>Analytics</span>
               </TabsTrigger>
               <TabsTrigger value="attendance" className="gap-1.5 rounded-lg text-xs sm:text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Calendar className="h-4 w-4 shrink-0" /><span>Attendance</span>
@@ -105,8 +101,7 @@ export function ClassDetail({ institute, classData, onBack }: ClassDetailProps) 
         <TabsContent value="dashboard" className="mt-6"><ClassDashboard classId={classData.id} key={`dashboard-${refreshKey}`} /></TabsContent>
         <TabsContent value="students" className="mt-6"><ClassStudents classId={classData.id} onDataChange={handleDataChange} /></TabsContent>
         <TabsContent value="tasks" className="mt-6"><ClassTasks classId={classData.id} onDataChange={handleDataChange} /></TabsContent>
-        <TabsContent value="grades" className="mt-6"><GradeReports classId={classData.id} /></TabsContent>
-        <TabsContent value="performance" className="mt-6"><StudentPerformance classId={classData.id} initialStudentId={urlStudentId || undefined} /></TabsContent>
+        <TabsContent value="analytics" className="mt-6"><ClassAnalytics classId={classData.id} initialStudentId={urlStudentId || undefined} /></TabsContent>
         <TabsContent value="attendance" className="mt-6"><ClassAttendance classId={classData.id} /></TabsContent>
         <TabsContent value="behaviour" className="mt-6"><ClassBehaviour classId={classData.id} /></TabsContent>
         <TabsContent value="marks" className="mt-6"><MarksSheet classId={classData.id} /></TabsContent>

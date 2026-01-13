@@ -51,3 +51,7 @@ export function dismissAllNotifications(ids: string[]): void {
 export function isNotificationDismissed(id: string): boolean {
   return getDismissedNotifications().has(id);
 }
+
+export function dismissSingleNotification(id: string): void {
+  dismissNotification(id);
+}
