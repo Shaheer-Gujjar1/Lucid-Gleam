@@ -1,73 +1,224 @@
-# Welcome to your Lovable project
+# Lucid Gleam
 
-## Project info
+Lucid Gleam is a modern classroom and academic operations platform built for teachers, tutors, and education teams who want to manage their classes with less friction and more clarity.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+From institute setup to student tracking, attendance, grading, behavior analytics, task reminders, and file organization, Lucid Gleam brings the entire academic workflow into one focused dashboard.
 
-## How can I edit this code?
+Built as a sleek, local-first web app, it helps educators stay organized without the clutter of disconnected tools, spreadsheets, and manual recordkeeping.
 
-There are several ways of editing your application.
+Live app: https://lucid-gleam.netlify.app
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Why schools and teachers choose Lucid Gleam
 
-Changes made via Lovable will be committed automatically to this repo.
+Teaching is not just instruction; it is planning, tracking, feedback, performance review, and operational coordination.
 
-**Use your preferred IDE**
+Lucid Gleam is designed to simplify that entire rhythm:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Manage multiple institutes and classes in one place
+- Keep student records organized and searchable
+- Track attendance without messy paperwork
+- Manage assignments, tests, and deadlines
+- Grade performance with transparent reporting
+- Monitor classroom behavior and engagement patterns
+- Store academic resources and teaching files centrally
+- Stay on top of deadlines with reminder notifications
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Whether you are running a tuition center, academy, school department, or a small teaching business, Lucid Gleam gives you a clear command center for class operations.
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Core features
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Institute and class management
+- Create and manage multiple institutes
+- Organize classes under each institute
+- Navigate between academic groups with a clean, structured layout
+- Keep department and class context organized in a single system
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Student management
+- Add and manage student profiles
+- Track name, email, roll number, and class assignment
+- Maintain academic continuity across multiple classes
+- Search and filter student records quickly
+- Bulk import student data to reduce manual setup time
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### Attendance tracking
+- Mark students as present, absent, late, or excused
+- Review attendance by date and lecture
+- Monitor class and individual attendance trends
+- Simplify daily class operations with real-time updates
+
+### Task and assignment workflow
+- Create assignments, quizzes, presentations, projects, and other tasks
+- Set due dates and track upcoming deadlines
+- Group tasks by class and academic type
+- Keep grading connected to the same workflow
+- Prioritize tasks that need action or follow-up
+
+### Behaviour tracking
+- Record student behavior ratings over time
+- Track participation, discipline, respect, teamwork, and focus
+- Add notes for classroom observations
+- Review behavioral trends and patterns across the class
+
+### Marks and grading system
+- Build custom marks sheets for class assessments
+- Configure manual and auto-calculated grading components
+- Support assignments, projects, attendance, and behaviour-based scoring
+- Review performance summaries such as class average, highest score, lowest score, and pass rate
+- Customize grading templates for different academic workflows
+
+### Seating chart and schedule management
+- Organize classroom seating visually
+- Structure seating for teaching flow and classroom management
+- Define class schedules and daily lecture plans
+
+### File management
+- Upload and organize teaching resources, notes, and materials
+- Associate files with institutes, classes, and students
+- Store lesson plans, reference docs, and academic files in one place
+- Preview supported file types and download them quickly
+
+### Reminders and notifications
+- Surface due dates and upcoming deadlines
+- Callback to overdue, current-day, and upcoming tasks
+- Keep action items visible in the dashboard header
+- Allow teachers to mark reminders as read
+
+### Backup and data control
+- Local-first architecture for speed and privacy
+- Export and restore data for backup or migration
+- Maintain teacher data without requiring a complex backend
+
+### Personalization
+- Dark mode and light mode support
+- Compact view options for denser workflows
+- Custom reminder preferences
+- Flexible configuration for daily teaching routines
+
+---
+
+## App experience
+
+Lucid Gleam is intentionally designed around a teacher-first workflow:
+
+- Clean and focused interface
+- Fast navigation between institutes and classes
+- Search-first interactions for quick lookup
+- Minimal friction in daily academic administration
+- A polished system that feels modern, calm, and organized
+
+The app balances utility and visual clarity, allowing educators to focus on student outcomes rather than admin overhead.
+
+---
+
+## Technology stack
+
+Lucid Gleam is built with a modern frontend stack:
+
+- React 18
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- React Router
+- IndexedDB for local persistence
+
+This combination results in a responsive, fast, and maintainable application optimized for day-to-day classroom management.
+
+---
+
+## Product architecture
+
+Lucid Gleam is organized around a simple academic model:
+
+- Institute = the top-level school or organization
+- Class = the teaching group within the institute
+- Student = the learner attached to a class
+- Tasks = assignments, quizzes, projects, and other academic work
+- Attendance = daily student participation and presence data
+- Behaviour = classroom engagement and conduct tracking
+- Grades = academic score evaluation and performance analysis
+
+This structure keeps records connected and makes the app easy to navigate across academic contexts.
+
+---
+
+## Getting started
+
+### Prerequisites
+
+- Node.js
+- npm
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Run locally
+
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Build for production
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+### Preview production build
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+npm run preview
+```
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## Why this app matters
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Classrooms generate a lot of operational data: attendance, tasks, marks, student behavior, and documentation. Without a system in place, it becomes difficult to keep all of it organized and actionable.
 
-## How can I deploy this project?
+Lucid Gleam addresses that challenge by combining the essentials of classroom operations into one streamlined platform. It is built to reduce manual admin work, improve visibility, and help educators make better decisions based on real data.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## Best suited for
 
-Yes, you can!
+Lucid Gleam is ideal for:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- Schools and education institutions
+- Private tutoring centers
+- Coaching academies
+- Enrichment programs
+- Independent teachers managing multiple classes
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## Project vision
+
+The goal behind Lucid Gleam is simple: make classroom management feel structured, intelligent, and stress-free.
+
+Instead of forcing educators to work across scattered spreadsheets, notes, and disconnected tools, the platform provides one modern workflow for managing academic operations from start to finish.
+
+---
+
+## License
+
+This project is currently maintained as a personal educational application and does not include a default public license declaration.
+
+---
+
+## Final note
+
+Lucid Gleam is more than a classroom app; it is a teacher operating system for daily academic management.
+
+It is designed to help educators stay organized, responsive, and informed across every part of the teaching workflow.
+
+---
+
+Lucid Gleam — clearer classrooms, smarter teaching, better oversight.
